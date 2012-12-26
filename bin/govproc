@@ -6,6 +6,8 @@ use warnings;
 
 use Getopt::Long;
 
+# VERSION
+
 my %opts = (
     log_stderr_size      => 10*1024*1024,
     log_stderr_histories => 10,
