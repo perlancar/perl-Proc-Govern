@@ -1,0 +1,62 @@
+#!/usr/bin/perl
+
+use 5.010;
+use strict;
+use warnings;
+
+use Getopt::Long;
+
+my %opts = (
+    log_stderr_size      => 10*1024*1024,
+    log_stderr_histories => 10,
+    pid_dir              => "/var/run",
+);
+Getopt::Long::Configure("no_permute");
+GetOptions(
+    "--help"                   => \$opts{help},
+    "--single"                 => \$opts{single},
+    "--log-stderr-dir=s"       => \$opts{log_stderr_dir},
+    "--log-stderr-size=i"      => \$opts{log_stderr_size},
+    "--log-stderr-histories=i" => \$opts{log_stderr_histories},
+    "--timeout=i"              => \$opts{timeout},
+);
+
+if ($opts{help} || !@ARGV) {
+    print <<_;
+Run child process and govern its various aspects
+
+Usage: $0 [OPTS] -- [COMMAND ...]
+
+Options:
+  --name=S                  Set process name.
+  --single                  Prevent running multiple instances simultaneously.
+  --log-stderr-dir=S        Enable logging of stderr and set log directory.
+  --log-stderr-size=N       Set log file size limit, in bytes, default 10MB.
+  --log-stderr-histories=N  Set number of rotated log files to keep, default 10.
+  --timeout=N               Set execution time limit, in seconds.
+  --pid-dir=S               Directory to put PID files in, if --single is set.
+_
+    exit 0;
+}
+
+require Process::Govern;
+
+my %ga = (
+    command => \@ARGV,
+    name    => $opts{name},
+    single  => $opts{single},
+    pid_dir => $opts{pid_dir},
+    timeout => $opts{timeout},
+);
+if ($opts{log_stderr_dir}) {
+    $ga{log_stderr} = {
+        dir       => $opts{log_stderr_dir},
+        size      => $opts{log_stderr_size},
+        histories => $opts{log_stderr_histories},
+    };
+}
+Process::Govern::govern_process(%ga);
+
+1;
+# ABSTRACT: Run child process and govern its various aspects
+# PODNAME: govproc
