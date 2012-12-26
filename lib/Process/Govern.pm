@@ -93,7 +93,7 @@ sub govern_process {
 }
 
 1;
-# ABSTRACT: Run child process and govern various aspects of it
+# ABSTRACT: Run child process and govern its various aspects
 
 =for Pod::Coverage ^(new)$
 
@@ -194,9 +194,9 @@ Inspiration: djb's B<tcpserver>.
 
 =head2 govern_process(%args)
 
-Run child process and govern various aspects of it. It basically uses
-L<IPC::Run> and a loop to check various conditions during the lifetime of the
-child process. Known arguments (required argument is marked with C<*>):
+Run child process and govern its various aspects. It basically uses L<IPC::Run>
+and a loop to check various conditions during the lifetime of the child process.
+Known arguments (required argument is marked with C<*>):
 
 =over
 
