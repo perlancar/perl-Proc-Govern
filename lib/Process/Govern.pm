@@ -49,7 +49,9 @@ sub govern_process {
         $fwr = File::Write::Rotate->new(%fa);
         $err = sub {
             print STDERR $_[0];
-            $fwr->write("STDERR: ", $_[0]); # XXX prefix with timestamp, how long script starts,
+            # XXX prefix with timestamp, how long script starts,
+            $_[0] =~ s/^/STDERR: /mg;
+            $fwr->write($_[0]);
         };
     } else {
         $err = sub {
@@ -79,7 +81,7 @@ sub govern_process {
         if (defined $args{timeout}) {
             my $time = time();
             if ($time - $start_time >= $args{timeout}) {
-                # XXX log
+                $err->("Timeout ($args{timeout}s), killing process ...\n");
                 $h->kill_kill;
                 # mark with a special exit code that it's a timeout
                 $res = 201;
