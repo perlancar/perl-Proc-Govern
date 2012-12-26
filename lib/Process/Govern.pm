@@ -100,7 +100,6 @@ sub govern_process {
 Use command-line utility:
 
  % govproc \
-       --name myapp \
        --timeout 3600 \
        --log-stderr-dir        /var/log/myapp/ \
        --log-stderr-size       16M \
