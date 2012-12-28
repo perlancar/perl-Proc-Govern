@@ -20,6 +20,7 @@ GetOptions(
     "--log-stderr-dir=s"       => \$opts{log_stderr_dir},
     "--log-stderr-size=i"      => \$opts{log_stderr_size},
     "--log-stderr-histories=i" => \$opts{log_stderr_histories},
+    "--log-stderr-period=s"    => \$opts{log_stderr_period},
     "--timeout=i"              => \$opts{timeout},
 );
 
@@ -35,6 +36,7 @@ Options:
   --log-stderr-dir=S        Enable logging of stderr and set log directory.
   --log-stderr-size=N       Set log file size limit, in bytes, default 10MB.
   --log-stderr-histories=N  Set number of rotated log files to keep, default 10.
+  --log-stderr-period=S     Enable periodic rotation (daily/monthly/yearly).
   --timeout=N               Set execution time limit, in seconds.
   --pid-dir=S               Directory to put PID files in, if --single is set.
 _
@@ -55,6 +57,7 @@ if ($opts{log_stderr_dir}) {
         dir       => $opts{log_stderr_dir},
         size      => $opts{log_stderr_size},
         histories => $opts{log_stderr_histories},
+        period    => $opts{log_stderr_period},
     };
 }
 Process::Govern::govern_process(%ga);

@@ -125,11 +125,9 @@ Use directly as Perl module:
 
 =head1 DESCRIPTION
 
-Process::Govern is a process manager. It is designed in the spirit of
-L<Perinci::Sub::Wrapper>, that is, a single wrapper (parent process) that
-manages various aspects of the "wrapee" (child process).
-
-It comes with a command-line interface, L<govproc>.
+Process::Govern is a child process manager. It is meant to be a convenient
+bundle for functionalities commonly needed when managing a child process. It
+comes with a command-line interface, L<govproc>.
 
 Background story: I first created this module to record STDERR output of scripts
 that I run from cron. The scripts already log debugging information using
@@ -137,17 +135,18 @@ L<Log::Any> to an autorotated log file (using L<Log::Dispatch::FileRotate>, via
 L<Log::Any::Adapter::Log4perl>, via L<Log::Any::App>). However, when the scripts
 warn/die, or when the programs that the scripts execute emit messages to STDERR,
 they do not get recorded. Thus, every script is then run through B<govproc>.
-From there, B<govproc> naturally gets additional features.
+From there, B<govproc> naturally gets additional features like timeout,
+preventing running multiple instances, only running single instance, and so on.
 
 Currently the following governing functionalities are available:
 
 =over
 
+=item * logging of STDERR output to an autorotated file
+
 =item * execution time limit
 
-=item * logging of STDERR output
-
-=item * prevent multiple instances from running simultaneously
+=item * preventing multiple instances from running simultaneously
 
 =back
 
@@ -163,15 +162,15 @@ With an option to autorestart if process' memory size grow out of limit.
 
 =item * other resource usage limit
 
-=item * fork/start multiple process
+=item * loadwatch-like functionality (pause when system load is too high)
+
+=item * fork/start multiple processes
 
 =item * autorestart on die/failure
 
 =item * set (CPU) nice level
 
 =item * set I/O nice level (scheduling priority/class)
-
-=item * loadwatch (pause when system load is too high)
 
 =item * limit STDIN input, STDOUT output?
 
@@ -286,5 +285,9 @@ L<Sys::RunUntil>
 djb's B<multilog>, http://cr.yp.to/daemontools/multilog.html
 
 =back
+
+Although not really related, L<Perinci::Sub::Wrapper>. This module also bundles
+functionalities like timeout, retries, argument validation, etc into a single
+function wrapper.
 
 =cut
