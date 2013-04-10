@@ -136,7 +136,7 @@ L<Log::Any::Adapter::Log4perl>, via L<Log::Any::App>). However, when the scripts
 warn/die, or when the programs that the scripts execute emit messages to STDERR,
 they do not get recorded. Thus, every script is then run through B<govproc>.
 From there, B<govproc> naturally gets additional features like timeout,
-preventing running multiple instances, only running single instance, and so on.
+preventing running multiple instances, and so on.
 
 Currently the following governing functionalities are available:
 
@@ -248,7 +248,7 @@ C</var/log>.
 
 =head1 CAVEATS
 
-Not tested on Win32.
+Not yet tested on Win32.
 
 
 =head1 SEE ALSO
@@ -267,7 +267,7 @@ djb's B<supervise>, http://cr.yp.to/daemontools/supervise.html
 
 B<loadwatch>
 
-cPanel also include a program called B<cpuwatch>.
+cPanel also includes a program called B<cpuwatch>.
 
 =item * Preventing multiple instances of program running simultaneously
 
