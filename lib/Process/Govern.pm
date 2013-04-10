@@ -126,8 +126,9 @@ Use directly as Perl module:
 =head1 DESCRIPTION
 
 Process::Govern is a child process manager. It is meant to be a convenient
-bundle for functionalities commonly needed when managing a child process. It
-comes with a command-line interface, L<govproc>.
+bundle (a single parent/monitoring process) for functionalities commonly needed
+when managing a child process. It comes with a command-line interface,
+L<govproc>.
 
 Background story: I first created this module to record STDERR output of scripts
 that I run from cron. The scripts already log debugging information using
@@ -244,6 +245,14 @@ C</var/log>.
 
 
 =head1 FAQ
+
+=head2 Why use Process::Govern?
+
+The main feature this module offers is convenience: it creates a single parent
+process to monitor child process. This fact is more pronounced when you need to
+monitor lots of child processes. If you use, on the other hand, use separate
+parent/monitoring process for timeout and then a separate one for CPU watching,
+and so on, there will potentially be a lot more processes running on the system.
 
 
 =head1 CAVEATS
