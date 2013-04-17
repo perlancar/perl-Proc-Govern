@@ -25,13 +25,18 @@ sub govern_process {
     $name =~ /\A\w+\z/ or die "Invalid name, please use letters/numbers only\n";
 
     my $pid;
-    if ($args{single}) {
+    if ($args{single_instance}) {
         defined($args{pid_dir}) or die "Please specify pid_dir\n";
         require Proc::PID::File;
-        $pid = Proc::PID::File->new(dir=>$args{pid_dir}, name=>$name,
-                                    verify=>1);
-        die "Process $name already running\n" if $pid->alive;
-    }
+        if (Proc::PID::File->running(
+            dir=>$args{pid_dir}, name=>$name, verify=>1)) {
+            if ($args{on_multiple_instance} &&
+                    $args{on_multiple_instance} eq 'exit') {
+                exit 1;
+            } else {
+                die "Process $name already running\n";
+            }
+        }
 
     ###
 
@@ -99,7 +104,7 @@ sub govern_process {
 
 =head1 SYNOPSIS
 
-Use command-line utility:
+To use via command-line (in most cases):
 
  % govproc \
        --timeout 3600 \
@@ -108,7 +113,7 @@ Use command-line utility:
        --log-stderr-histories  12 \
    /path/to/myapp
 
-Use directly as Perl module:
+To use directly as Perl module:
 
  use Process::Govern qw(govern_process);
  govern_process(
@@ -231,15 +236,21 @@ also passed to File::Write::Rotate's constructor), C<histories> (INT, also
 passed to File::Write::Rotate's constructor), C<period> (STR, also passed to
 File::Write::Rotate's constructor).
 
-=item * single => BOOL
+=item * single_instance => BOOL
 
 If set to true, will prevent running multiple instances simultaneously.
-Implemented using L<Proc::PID::File>. You will also have to set C<pid_dir>.
+Implemented using L<Proc::PID::File>. You will also normally have to set
+C<pid_dir>, unless your script runs as root, in which case you can use the
+default C</var/log>.
 
-=item * pid_dir => STR
+=item * pid_dir => STR (default: /var/log)
 
-Directory to put PID file in. Relevant if C<single> is set to true. Default to
-C</var/log>.
+Directory to put PID file in. Relevant if C<single> is set to true.
+
+=item * on_multiple_instance => STR
+
+Can be set to 'exit' to silently exit when there is already a running instance.
+Otherwise, will print an error message 'Program <NAME> already running'.
 
 =back
 
