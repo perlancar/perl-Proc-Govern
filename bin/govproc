@@ -25,7 +25,7 @@ GetOptions(
     "--log-stderr-period=s"    => \$opts{log_stderr_period},
     "--timeout=i"              => \$opts{timeout},
     "--pid-dir=s"              => \$opts{pid_dir},
-    "--on-multiple-instance=S" => \$opts{on_multiple_instance},
+    "--on-multiple-instance=s" => \$opts{on_multiple_instance},
 );
 
 if ($opts{help} || !@ARGV) {
