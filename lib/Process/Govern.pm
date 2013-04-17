@@ -12,6 +12,8 @@ our @EXPORT_OK = qw(govern_process);
 sub govern_process {
     my %args = @_;
 
+    my $debug = $ENV{DEBUG};
+
     my $cmd = $args{command};
     defined($cmd) or die "Please specify command\n";
 
@@ -67,7 +69,20 @@ sub govern_process {
 
     my $start_time = time();
     require IPC::Run;
+    say "D:Starting program $name ..." if $debug;
     my $h = IPC::Run::start($cmd, \*STDIN, $out, $err);
+
+    local $SIG{INT} = sub {
+        say "D:Received INT signal" if $debug;
+        $h->kill_kill;
+        exit 1;
+    };
+
+    local $SIG{TERM} = sub {
+        say "D:Received TERM signal" if $debug;
+        $h->kill_kill;
+        exit 1;
+    };
 
     my $res;
     my $time;
