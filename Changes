@@ -1,5 +1,14 @@
 Revision history for Process-Govern
 
+0.06     2013-04-17 (SHARYANTO)
+
+         - Use exit code 202 to signify 'another instance running'. Document
+           exit codes (currently only this and 201).
+
+         - Show nicer process name for 'ps' (only 'govproc --opt' instead of
+           '/path/to/perl /path/to/govproc --opt -- CMD --cmdopts ...'
+
+
 0.05     2013-04-17 (SHARYANTO)
 
          - Change pump() loop from using 'sleep 0.1' to using timeout(1) object,
