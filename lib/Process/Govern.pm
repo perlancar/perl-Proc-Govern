@@ -36,9 +36,10 @@ sub govern_process {
             dir=>$args{pid_dir}, name=>$name, verify=>1)) {
             if ($args{on_multiple_instance} &&
                     $args{on_multiple_instance} eq 'exit') {
-                exit 1;
+                exit 202;
             } else {
-                die "Program $name already running\n";
+                warn "Program $name already running\n";
+                exit 202;
             }
         }
     }
@@ -209,6 +210,23 @@ With an option to autorestart if process' memory size grow out of limit.
 Inspiration: djb's B<tcpserver>.
 
 =item * set/clean environment variables
+
+=back
+
+
+=head1 EXIT CODES
+
+Below is the list of exit codes that Process::Govern uses:
+
+=over
+
+=item * 201
+
+Timeout.
+
+=item * 202
+
+Another instance is already running (when C<single_instance> option is true).
 
 =back
 
