@@ -68,3 +68,21 @@ Process::Govern::govern_process(%ga);
 1;
 # ABSTRACT: Run child process and govern its various aspects
 # PODNAME: govproc
+
+=head1 SYNOPSIS
+
+ % govproc [opts] COMMAND ...
+
+See C<govproc --help> for list of options.
+
+
+=head1 DESCRIPTION
+
+This script is a command-line interface for L<Process::Govern>.
+
+
+=head1 SEE ALSO
+
+L<Process::Govern>
+
+=cut
