@@ -53,10 +53,10 @@ sub govern_process {
     my $fwr;
     if ($args{log_stderr}) {
         require File::Write::Rotate;
-        my %fa = %{$args{log_stderr}};
-        $fa{dir}    //= "/var/log";
-        $fa{prefix}   = $name;
-        $fwr = File::Write::Rotate->new(%fa);
+        my %fwrargs = %{$args{log_stderr}};
+        $fwrargs{dir}    //= "/var/log";
+        $fwrargs{prefix}   = $name;
+        $fwr = File::Write::Rotate->new(%fwrargs);
         $err = sub {
             print STDERR $_[0];
             # XXX prefix with timestamp, how long script starts,
