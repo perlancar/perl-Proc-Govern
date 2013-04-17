@@ -30,7 +30,7 @@ sub govern_process {
         require Proc::PID::File;
         $pid = Proc::PID::File->new(dir=>$args{pid_dir}, name=>$name,
                                     verify=>1);
-        die "Already running" if $pid->alive;
+        die "Process $name already running\n" if $pid->alive;
     }
 
     ###
