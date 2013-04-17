@@ -37,6 +37,7 @@ sub govern_process {
                 die "Process $name already running\n";
             }
         }
+    }
 
     ###
 
@@ -62,10 +63,6 @@ sub govern_process {
         $err = sub {
             print STDERR $_[0];
         };
-    }
-
-    if ($pid && $pid->alive) {
-        die "Already running";
     }
 
     my $start_time = time();
