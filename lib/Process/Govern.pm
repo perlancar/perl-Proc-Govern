@@ -9,6 +9,8 @@ use warnings;
 use Exporter qw(import);
 our @EXPORT_OK = qw(govern_process);
 
+use Time::HiRes qw(sleep);
+
 sub govern_process {
     my %args = @_;
 
@@ -92,9 +94,11 @@ sub govern_process {
             $res = $h->result;
             last;
         }
-        unless ($h->pump_nb) {
-            sleep 1; # XXX sleep in finer granularity
-        }
+
+        # XXX this is not ideal, but pumb_nb always returns true?
+        $h->pump_nb;
+        sleep 0.1;
+
         if (defined $args{timeout}) {
             my $time = time();
             if ($time - $start_time >= $args{timeout}) {
