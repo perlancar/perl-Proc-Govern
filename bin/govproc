@@ -17,7 +17,8 @@ my %opts = (
 );
 Getopt::Long::Configure("no_permute");
 GetOptions(
-    "help"                   => \$opts{help},
+    "help"                   => \$opts{-help},
+    "version|v"              => \$opts{-version},
 
     "name|n=s"               => \$opts{name},
     "single-instance"        => \$opts{single_instance},
@@ -34,11 +35,14 @@ GetOptions(
     "load-every=i"           => sub { $opts{load_watch} = 1; $opts{load_check_every} = $_[1] },
 );
 
-if ($opts{help} || !@ARGV) {
+if ($opts{-version}) {
+    say "govproc version ", $Process::Govern::VERSION // "?";
+    exit 0;
+} elsif ($opts{-help} || !@ARGV) {
     print <<_;
 Run child process and govern its various aspects
 
-Usage: $0 [OPTS] -- [COMMAND ...]
+Usage: govproc [OPTS] -- [COMMAND ...]
 
 Options:
   --name=S                  Set process name.
