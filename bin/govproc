@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use Getopt::Long;
+use Process::Govern;
 
 # VERSION
 
@@ -36,7 +37,7 @@ GetOptions(
 );
 
 if ($opts{-version}) {
-    say "govproc version ", $Process::Govern::VERSION // "?";
+    say "govproc version ", ($Process::Govern::VERSION // "?");
     exit 0;
 } elsif ($opts{-help} || !@ARGV) {
     print <<_;
@@ -64,8 +65,6 @@ Options:
 _
     exit 0;
 }
-
-require Process::Govern;
 
 my %ga = (
     command         => \@ARGV,
