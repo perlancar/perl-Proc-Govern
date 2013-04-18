@@ -141,6 +141,7 @@ sub govern_process {
     while (1) {
         #say "D:main loop" if $debug;
         if (!$self->{suspended}) {
+            # re-set timer, it might be reset by suspend/resume?
             $to->start(1);
 
             unless ($h->pumpable) {
