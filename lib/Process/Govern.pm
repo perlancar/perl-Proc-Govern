@@ -11,10 +11,48 @@ our @EXPORT_OK = qw(govern_process);
 
 use Time::HiRes qw(sleep);
 
+sub new {
+    my ($class) = @_;
+    bless {}, $class;
+}
+
+sub _suspend {
+    my $self = shift;
+    my $h = $self->{h};
+    say "D:Suspending program ..." if $self->{debug};
+    kill STOP => $_->{PID} for @{ $h->{KIDS} };
+    $self->{suspended} = 1;
+}
+
+sub _resume {
+    my $self = shift;
+    my $h = $self->{h};
+    say "D:Resuming program ..." if $self->{debug};
+    kill CONT => $_->{PID} for @{ $h->{KIDS} };
+    $self->{suspended} = 0;
+}
+
+sub _kill {
+    my $self = shift;
+    my $h = $self->{h};
+    $self->_resume if $self->{suspended};
+    say "D:Killing program ..." if $self->{debug};
+    $h->kill_kill;
+}
+
 sub govern_process {
+    my $self;
+    if (ref $_[0]) {
+        $self = shift;
+    } else {
+        $self = __PACKAGE__->new;
+    }
+
     my %args = @_;
+    $self->{args} = \%args;
 
     my $debug = $ENV{DEBUG};
+    $self->{debug} = $debug;
 
     my $cmd = $args{command};
     defined($cmd) or die "Please specify command\n";
@@ -27,8 +65,8 @@ sub govern_process {
     }
     defined($name) or die "Please specify name\n";
     $name =~ /\A\w+\z/ or die "Invalid name, please use letters/numbers only\n";
+    $self->{name} = $name;
 
-    my $pid;
     if ($args{single_instance}) {
         defined($args{pid_dir}) or die "Please specify pid_dir\n";
         require Proc::PID::File;
@@ -43,6 +81,11 @@ sub govern_process {
             }
         }
     }
+
+    my $lw     = $args{load_watch} // 0;
+    my $lwfreq = $args{load_check_every} // 10;
+    my $lwhigh = $args{load_high_limit}  // 1.25;
+    my $lwlow  = $args{load_low_limit}   // 0.25;
 
     ###
 
@@ -74,44 +117,88 @@ sub govern_process {
     require IPC::Run;
     say "D:Starting program $name ..." if $debug;
     my $to = IPC::Run::timeout(1);
+    #$self->{to} = $to;
     my $h  = IPC::Run::start($cmd, \*STDIN, $out, $err, $to)
         or die "Can't start program: $?\n";
+    $self->{h} = $h;
 
     local $SIG{INT} = sub {
         say "D:Received INT signal" if $debug;
-        $h->kill_kill;
+        $self->_kill;
         exit 1;
     };
 
     local $SIG{TERM} = sub {
         say "D:Received TERM signal" if $debug;
-        $h->kill_kill;
+        $self->_kill;
         exit 1;
     };
 
     my $res;
-    my $time;
-    while (1) {
-        unless ($h->pumpable) {
-            $h->finish;
-            $res = $h->result;
-            last;
-        }
+    my $lastlw_time;
 
-        eval { $h->pump };
-        my $everr = $@;
-        die $everr if $everr && $everr !~ /^IPC::Run: timeout/;
+  MAIN_LOOP:
+    while (1) {
+        #say "D:main loop" if $debug;
+        if (!$self->{suspended}) {
+            $to->start(1);
+
+            unless ($h->pumpable) {
+                $h->finish;
+                $res = $h->result;
+                last MAIN_LOOP;
+            }
+
+            eval { $h->pump };
+            my $everr = $@;
+            die $everr if $everr && $everr !~ /^IPC::Run: timeout/;
+        } else {
+            sleep 1;
+        }
+        my $now = time();
 
         if (defined $args{timeout}) {
-            my $time = time();
-            if ($time - $start_time >= $args{timeout}) {
+            if ($now - $start_time >= $args{timeout}) {
                 $err->("Timeout ($args{timeout}s), killing child ...\n");
-                $h->kill_kill;
+                $self->_kill;
                 # mark with a special exit code that it's a timeout
                 $res = 201;
-                last;
+                last MAIN_LOOP;
             }
         }
+
+        if ($lw && (!$lastlw_time || $lastlw_time <= ($now-$lwfreq))) {
+            say "D:Checking load" if $debug;
+            if (!$self->{suspended}) {
+                my $is_high;
+                if (ref($lwhigh) eq 'CODE') {
+                    $is_high = $lwhigh->($h);
+                } else {
+                    require Sys::LoadAvg;
+                    my @load = Sys::LoadAvg::loadavg();
+                    $is_high = $load[0] >= $lwhigh;
+                }
+                if ($is_high) {
+                    say "D:Load is too high" if $debug;
+                    $self->_suspend;
+                }
+            } else {
+                my $is_low;
+                if (ref($lwlow) eq 'CODE') {
+                    $is_low = $lwlow->($h);
+                } else {
+                    require Sys::LoadAvg;
+                    my @load = Sys::LoadAvg::loadavg();
+                    $is_low = $load[0] <= $lwlow;
+                }
+                if ($is_low) {
+                    say "D:Load is low" if $debug;
+                    $self->_resume;
+                }
+            }
+            $lastlw_time = $now;
+        }
+
     }
     exit $res;
 }
@@ -173,6 +260,8 @@ Currently the following governing functionalities are available:
 
 =item * preventing multiple instances from running simultaneously
 
+=item * load watch
+
 =back
 
 In the future the following features are also planned or contemplated:
@@ -187,8 +276,6 @@ With an option to autorestart if process' memory size grow out of limit.
 
 =item * other resource usage limit
 
-=item * loadwatch-like functionality (pause when system load is too high)
-
 =item * fork/start multiple processes
 
 =item * autorestart on die/failure
@@ -197,7 +284,7 @@ With an option to autorestart if process' memory size grow out of limit.
 
 =item * set I/O nice level (scheduling priority/class)
 
-=item * limit STDIN input, STDOUT output?
+=item * limit STDIN input, STDOUT/STDERR output?
 
 =item * trap/handle some signals for the child process?
 
@@ -288,6 +375,29 @@ Directory to put PID file in. Relevant if C<single> is set to true.
 Can be set to 'exit' to silently exit when there is already a running instance.
 Otherwise, will print an error message 'Program <NAME> already running'.
 
+=item * load_watch => BOOL (default: 0)
+
+If set to 1, enable load watching. Program will be suspended when system load is
+too high and resumed if system load returns to a lower limit.
+
+=item * load_high_limit => INT|CODE (default: 1.25)
+
+Limit above which program should be suspended, if load watching is enabled. If
+integer, will be compared against L<Sys::LoadAvg>'s LOADAVG_1MIN value.
+Alternatively, you can provide a custom routine here, code should return true if
+load is considered too high.
+
+=item * load_low_limit => INT|CODE (default: 0.25)
+
+Limit below which program should resume, if load watching is enabled. If
+integer, will be compared against L<Sys::LoadAvg>'s LOADAVG_1MIN value.
+Alternatively, you can provide a custom routine here, code should return true if
+load is considered low.
+
+=item * load_check_every => INT (default: 10)
+
+Frequency of load checking, in seconds.
+
 =back
 
 
@@ -321,7 +431,8 @@ djb's B<supervise>, http://cr.yp.to/daemontools/supervise.html
 
 =item * Pausing under high system load
 
-B<loadwatch>
+B<loadwatch>. This program also has the ability to run N copies of program and
+interactively control stopping/resuming via Unix socket.
 
 cPanel also includes a program called B<cpuwatch>.
 

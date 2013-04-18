@@ -17,17 +17,21 @@ my %opts = (
 );
 Getopt::Long::Configure("no_permute");
 GetOptions(
-    "--help"                   => \$opts{help},
+    "help"                   => \$opts{help},
 
-    "--name=s"                 => \$opts{name},
-    "--single-instance"        => \$opts{single_instance},
-    "--log-stderr-dir=s"       => \$opts{log_stderr_dir},
-    "--log-stderr-size=i"      => \$opts{log_stderr_size},
-    "--log-stderr-histories=i" => \$opts{log_stderr_histories},
-    "--log-stderr-period=s"    => \$opts{log_stderr_period},
-    "--timeout=i"              => \$opts{timeout},
-    "--pid-dir=s"              => \$opts{pid_dir},
-    "--on-multiple-instance=s" => \$opts{on_multiple_instance},
+    "name|n=s"               => \$opts{name},
+    "single-instance"        => \$opts{single_instance},
+    "log-stderr-dir=s"       => \$opts{log_stderr_dir},
+    "log-stderr-size=i"      => \$opts{log_stderr_size},
+    "log-stderr-histories=i" => \$opts{log_stderr_histories},
+    "log-stderr-period=s"    => \$opts{log_stderr_period},
+    "timeout=i"              => \$opts{timeout},
+    "pid-dir=s"              => \$opts{pid_dir},
+    "on-multiple-instance=s" => \$opts{on_multiple_instance},
+    "load-watch"             => \$opts{load_watch},
+    "load-high=f"            => sub { $opts{load_watch} = 1; $opts{load_high_limit}  = $_[1] },
+    "load-low=f"             => sub { $opts{load_watch} = 1; $opts{load_low_limit}   = $_[1] },
+    "load-every=i"           => sub { $opts{load_watch} = 1; $opts{load_check_every} = $_[1] },
 );
 
 if ($opts{help} || !@ARGV) {
@@ -47,6 +51,12 @@ Options:
   --pid-dir=S               Directory to put PID file, if --single-instance set.
   --on-multiple-instance=S  Can be set to 'exit' to silently exit when another
                               instance is already running.
+  --load-watch              Enable load watching (suspend when system load is
+                              too high, resume when load returns to low).
+  --load-high=N             Set load high limit (default: 1.25).
+  --load-low=N              Set load low limit (default: 0.25).
+  --load-every=N            Set load watch checking frequency, in seconds
+                              (default: 10).
 _
     exit 0;
 }
@@ -68,6 +78,12 @@ if ($opts{log_stderr_dir}) {
         histories => $opts{log_stderr_histories},
         period    => $opts{log_stderr_period},
     };
+}
+if ($opts{load_watch}) {
+    $ga{load_watch} = 1;
+    $ga{load_high_limit}  = $opts{load_high_limit};
+    $ga{load_low_limit}   = $opts{load_low_limit};
+    $ga{load_check_every} = $opts{load_check_every};
 }
 
 # show nicer text in 'ps', instead of '/usr/bin/perl /usr/local/bin/govprov
