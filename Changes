@@ -1,5 +1,10 @@
 Revision history for Process-Govern
 
+0.07     2013-04-18 (SHARYANTO)
+
+         - Add load watching.
+
+
 0.06     2013-04-17 (SHARYANTO)
 
          - Use exit code 202 to signify 'another instance running'. Document
@@ -11,8 +16,8 @@ Revision history for Process-Govern
 
 0.05     2013-04-17 (SHARYANTO)
 
-         - Change pump() loop from using 'sleep 0.1' to using timeout(1) object,
-           which is more proper.
+         - (internal) Change pump() loop from using 'sleep 0.1' to using
+           timeout(1) object, which is more proper.
 
 
 0.04     2013-04-17 (SHARYANTO)
