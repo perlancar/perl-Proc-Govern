@@ -17,7 +17,7 @@ my %opts = (
 );
 Getopt::Long::Configure("no_permute");
 GetOptions(
-    "help"                   => \$opts{-help},
+    "help|h|?"               => \$opts{-help},
     "version|v"              => \$opts{-version},
 
     "name|n=s"               => \$opts{name},
