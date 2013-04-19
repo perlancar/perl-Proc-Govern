@@ -1,5 +1,12 @@
 Revision history for Process-Govern
 
+0.08     2013-04-19 (SHARYANTO)
+
+         - Add --version.
+
+         - Fix POD [RT#84742] (thanks Slaven).
+
+
 0.07     2013-04-18 (SHARYANTO)
 
          - Add load watching.
