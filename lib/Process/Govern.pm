@@ -68,10 +68,9 @@ sub govern_process {
     $self->{name} = $name;
 
     if ($args{single_instance}) {
-        defined($args{pid_dir}) or die "Please specify pid_dir\n";
+        my $pid_dir = $args{pid_dir} // "/var/run";
         require Proc::PID::File;
-        if (Proc::PID::File->running(
-            dir=>$args{pid_dir}, name=>$name, verify=>1)) {
+        if (Proc::PID::File->running(dir=>$pid_dir, name=>$name, verify=>1)) {
             if ($args{on_multiple_instance} &&
                     $args{on_multiple_instance} eq 'exit') {
                 exit 202;
@@ -365,9 +364,9 @@ File::Write::Rotate's constructor).
 If set to true, will prevent running multiple instances simultaneously.
 Implemented using L<Proc::PID::File>. You will also normally have to set
 C<pid_dir>, unless your script runs as root, in which case you can use the
-default C</var/log>.
+default C</var/run>.
 
-=item * pid_dir => STR (default: /var/log)
+=item * pid_dir => STR (default: /var/run)
 
 Directory to put PID file in. Relevant if C<single> is set to true.
 

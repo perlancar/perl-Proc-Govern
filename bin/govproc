@@ -14,7 +14,6 @@ my @SAVE_ARGV = @ARGV;
 my %opts = (
     log_stderr_size      => 10*1024*1024,
     log_stderr_histories => 10,
-    pid_dir              => "/var/run",
 );
 Getopt::Long::Configure("no_permute");
 GetOptions(
