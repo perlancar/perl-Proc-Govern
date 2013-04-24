@@ -1,5 +1,10 @@
 Revision history for Process-Govern
 
+0.09     2013-04-24 (SHARYANTO)
+
+         - Add restarting (--restart).
+
+
 0.08     2013-04-19 (SHARYANTO)
 
          - Add --version.
