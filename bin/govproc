@@ -48,6 +48,7 @@ Usage: govproc [OPTS] -- [COMMAND ...]
 Options:
   --name=S                  Set process name.
   --single-instance         Prevent running multiple instances simultaneously.
+  --restart                 Restart when child process dies/exits.
   --log-stderr-dir=S        Enable logging of stderr and set log directory.
   --log-stderr-size=N       Set log file size limit, in bytes, default 10MB.
   --log-stderr-histories=N  Set number of rotated log files to keep, default 10.
