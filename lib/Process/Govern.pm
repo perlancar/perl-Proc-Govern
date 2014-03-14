@@ -408,8 +408,9 @@ Program to run. Passed to IPC::Run's C<start()>.
 
 =item * name => STRING
 
-Should match regex C</\A\w+\z/>. Used in several ways, e.g. passed as C<prefix>
-in L<File::Write::Rotate>'s constructor as well as used as name of PID file.
+Should match regex C</\A\w+\z/>. Used in several places, e.g. passed as
+C<prefix> in L<File::Write::Rotate>'s constructor as well as used as name of PID
+file.
 
 If not given, will be taken from command.
 
@@ -487,7 +488,7 @@ Planned arguments: restart_delay, check_alive.
 
 The main feature this module offers is convenience: it creates a single parent
 process to monitor child process. This fact is more pronounced when you need to
-monitor lots of child processes. If you use, on the other hand, use separate
+monitor lots of child processes. If you use, on the other hand, separate
 parent/monitoring process for timeout and then a separate one for CPU watching,
 and so on, there will potentially be a lot more processes running on the system.
 
