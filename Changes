@@ -1,5 +1,16 @@
 Revision history for Process-Govern
 
+0.11     2014-03-14 (SHARYANTO)
+
+         [NEW FEATURES]
+
+         - Add option: 'show_stderr' to allow hiding STDERR output (but
+           optionally still logs it to file).
+
+         - Add option 'show_stdout', 'log_stdout' to allow hiding and/or logging
+           STDOUT output just like STDERR.
+
+
 0.10     2014-03-14 (SHARYANTO)
 
          [INCOMPATIBLE CHANGES]
