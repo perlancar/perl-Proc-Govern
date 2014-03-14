@@ -14,6 +14,8 @@ my @SAVE_ARGV = @ARGV;
 my %opts = (
     log_stderr_size      => 10*1024*1024,
     log_stderr_histories => 10,
+    log_stdout_size      => 10*1024*1024,
+    log_stdout_histories => 10,
 );
 Getopt::Long::Configure("no_permute");
 GetOptions(
@@ -23,10 +25,16 @@ GetOptions(
     "name|n=s"               => \$opts{name},
     "single-instance"        => \$opts{single_instance},
     "restart"                => \$opts{restart},
+    "show-stderr!"           => \$opts{show_stderr},
     "log-stderr-dir=s"       => \$opts{log_stderr_dir},
     "log-stderr-size=i"      => \$opts{log_stderr_size},
     "log-stderr-histories=i" => \$opts{log_stderr_histories},
     "log-stderr-period=s"    => \$opts{log_stderr_period},
+    "show-stdout!"           => \$opts{show_stdout},
+    "log-stdout-dir=s"       => \$opts{log_stdout_dir},
+    "log-stdout-size=i"      => \$opts{log_stdout_size},
+    "log-stdout-histories=i" => \$opts{log_stdout_histories},
+    "log-stdout-period=s"    => \$opts{log_stdout_period},
     "timeout=i"              => \$opts{timeout},
     "pid-dir=s"              => \$opts{pid_dir},
     "on-multiple-instance=s" => \$opts{on_multiple_instance},
@@ -49,10 +57,16 @@ Options:
   --name=S                  Set process name.
   --single-instance         Prevent running multiple instances simultaneously.
   --restart                 Restart when child process dies/exits.
+  --noshow-stderr           Hide stderr output (but you can still log it).
   --log-stderr-dir=S        Enable logging of stderr and set log directory.
   --log-stderr-size=N       Set log file size limit, in bytes, default 10MB.
   --log-stderr-histories=N  Set number of rotated log files to keep, default 10.
   --log-stderr-period=S     Enable periodic rotation (daily/monthly/yearly).
+  --noshow-stdout           Hide stdout output (but you can still log it).
+  --log-stdout-dir=S        Enable logging of stdout and set log directory.
+  --log-stdout-size=N       Set log file size limit, in bytes, default 10MB.
+  --log-stdout-histories=N  Set number of rotated log files to keep, default 10.
+  --log-stdout-period=S     Enable periodic rotation (daily/monthly/yearly).
   --timeout=N               Set execution time limit, in seconds.
   --pid-dir=S               Directory to put PID file, if --single-instance set.
   --on-multiple-instance=S  Can be set to 'exit' to silently exit when another
@@ -76,12 +90,22 @@ my %ga = (
     timeout         => $opts{timeout},
     on_multiple_instance => $opts{on_multiple_instance},
 );
+$ga{show_stderr} = $opts{show_stderr};
 if ($opts{log_stderr_dir}) {
     $ga{log_stderr} = {
         dir       => $opts{log_stderr_dir},
         size      => $opts{log_stderr_size},
         histories => $opts{log_stderr_histories},
         period    => $opts{log_stderr_period},
+    };
+}
+$ga{show_stdout} = $opts{show_stdout};
+if ($opts{log_stdout_dir}) {
+    $ga{log_stdout} = {
+        dir       => $opts{log_stdout_dir},
+        size      => $opts{log_stdout_size},
+        histories => $opts{log_stdout_histories},
+        period    => $opts{log_stdout_period},
     };
 }
 if ($opts{load_watch}) {
