@@ -1,5 +1,11 @@
 Revision history for Process-Govern
 
+0.12     2014-03-14 (SHARYANTO)
+
+         - bin/govproc: Forgot to add cmdline options for 'show_std{out,err}'
+           and 'log_stdout'.
+
+
 0.11     2014-03-14 (SHARYANTO)
 
          [NEW FEATURES]
