@@ -95,7 +95,7 @@ if ($opts{load_watch}) {
 # --opt CMD --cmdopt', show 'govproc --opt'
 $0 = "govproc" . " " . join(" ", @SAVE_ARGV[0..(@SAVE_ARGV-@ARGV-1)]);
 
-Process::Govern::govern_process(%ga);
+exit Process::Govern::govern_process(%ga);
 
 1;
 # ABSTRACT: Run child process and govern its various aspects

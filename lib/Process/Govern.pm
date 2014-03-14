@@ -95,6 +95,7 @@ $SPEC{govern_process} = {
         #    schema => 'any*',
         #},
     },
+    result_naked => 1,
 };
 sub govern_process {
     my $self;
@@ -109,6 +110,8 @@ sub govern_process {
 
     my $debug = $ENV{DEBUG};
     $self->{debug} = $debug;
+
+    my $exitcode;
 
     my $cmd = $args{command};
     defined($cmd) or die "Please specify command\n";
@@ -129,10 +132,10 @@ sub govern_process {
         if (Proc::PID::File->running(dir=>$pid_dir, name=>$name, verify=>1)) {
             if ($args{on_multiple_instance} &&
                     $args{on_multiple_instance} eq 'exit') {
-                exit 202;
+                $exitcode = 202; goto EXIT;
             } else {
                 warn "Program $name already running\n";
-                exit 202;
+                $exitcode = 202; goto EXIT;
             }
         }
     }
@@ -207,7 +210,6 @@ sub govern_process {
     };
     local $SIG{CHLD} = $chld_handler if $args{restart};
 
-    my $res;
     my $lastlw_time;
 
   MAIN_LOOP:
@@ -219,7 +221,7 @@ sub govern_process {
 
             unless ($h->pumpable) {
                 $h->finish;
-                $res = $h->result;
+                $exitcode = $h->result;
                 last MAIN_LOOP;
             }
 
@@ -236,7 +238,7 @@ sub govern_process {
                 $err->("Timeout ($args{timeout}s), killing child ...\n");
                 $self->_kill;
                 # mark with a special exit code that it's a timeout
-                $res = 124;
+                $exitcode = 124;
                 last MAIN_LOOP;
             }
         }
@@ -273,8 +275,10 @@ sub govern_process {
             $lastlw_time = $now;
         }
 
-    }
-    exit $res;
+    } # MAINLOOP
+
+  EXIT:
+    return $exitcode || 0;
 }
 
 1;
@@ -394,7 +398,7 @@ Another instance is already running (when C<single_instance> option is true).
 
 =head1 FUNCTIONS
 
-=head2 govern_process(%args)
+=head2 govern_process(%args) => INT
 
 Run child process and govern its various aspects. It basically uses L<IPC::Run>
 and a loop to check various conditions during the lifetime of the child process.
@@ -481,6 +485,8 @@ If set to true, do restart.
 
 Planned arguments: restart_delay, check_alive.
 
+Return value: command exit code.
+
 
 =head1 FAQ
 
@@ -524,6 +530,13 @@ criteria. The same goes with timeout.
 
 Some options are for a per-process, e.g. capturing stderr.
 
+If we support multiple commands, e.g. C<< commands => ['cmd1', ['cmd2', 'arg']]
+>> then we'll also need to return exit codes for each command, e.g. C<< [0, 124]
+>>.
+
+We should exit only after all child processes terminate. But when a child exits,
+a hook can be defined e.g. C<on_child_exit>.
+
 =item * Allow specifying time point (instead of duration) for timeout?
 
 For example, we might want to say "this command should not run past midnight".
@@ -531,7 +544,7 @@ For example, we might want to say "this command should not run past midnight".
 In general, we might also want to allow specifying a coderef for flexible
 timeout criteria?
 
-=item * Print messages when stopping/resuming due to load control
+=item * Print messages when stopping/resuming due to load control.
 
 Like B<loadwatch> does:
 
