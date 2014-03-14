@@ -71,6 +71,17 @@ $SPEC{govern_process} = {
         load_low_limit => {
             schema => ['any*' => of => [[int => default => 0.25], 'code*']],
         },
+        log_stdout => {
+            summary => 'Will be passed as arguments to File::Write::Rotate',
+            schema => ['hash*' => keys => {
+                dir       => 'str*',
+                size      => 'str*',
+                histories => 'int*',
+            }],
+        },
+        show_stdout => {
+            schema => [bool => default => 1],
+        },
         log_stderr => {
             summary => 'Will be passed as arguments to File::Write::Rotate',
             schema => ['hash*' => keys => {
@@ -78,6 +89,9 @@ $SPEC{govern_process} = {
                 size      => 'str*',
                 histories => 'int*',
             }],
+        },
+        show_stderr => {
+            schema => [bool => default => 1],
         },
         timeout => {
             schema => ['int*'],
@@ -140,6 +154,9 @@ sub govern_process {
         }
     }
 
+    my $showout = $args{show_stdout} // 1;
+    my $showerr = $args{show_stderr} // 1;
+
     my $lw     = $args{load_watch} // 0;
     my $lwfreq = $args{load_check_every} // 10;
     my $lwhigh = $args{load_high_limit}  // 1.25;
@@ -147,27 +164,41 @@ sub govern_process {
 
     ###
 
-    my $out = sub {
-        print $_[0];
-    };
+    my $out;
+    if ($args{log_stdout}) {
+        require File::Write::Rotate;
+        my %fwrargs = %{$args{log_stdout}};
+        $fwrargs{dir}    //= "/var/log";
+        $fwrargs{prefix}   = $name;
+        my $fwr = File::Write::Rotate->new(%fwrargs);
+        $out = sub {
+            print STDOUT $_[0] if $showout;
+            # XXX prefix with timestamp, how long script starts,
+            $_[0] =~ s/^/STDOUT: /mg;
+            $fwr->write($_[0]);
+        };
+    } else {
+        $out = sub {
+            print STDOUT $_[0] if $showout;
+        };
+    }
 
     my $err;
-    my $fwr;
     if ($args{log_stderr}) {
         require File::Write::Rotate;
         my %fwrargs = %{$args{log_stderr}};
         $fwrargs{dir}    //= "/var/log";
         $fwrargs{prefix}   = $name;
-        $fwr = File::Write::Rotate->new(%fwrargs);
+        my $fwr = File::Write::Rotate->new(%fwrargs);
         $err = sub {
-            print STDERR $_[0];
+            print STDERR $_[0] if $showerr;
             # XXX prefix with timestamp, how long script starts,
             $_[0] =~ s/^/STDERR: /mg;
             $fwr->write($_[0]);
         };
     } else {
         $err = sub {
-            print STDERR $_[0];
+            print STDERR $_[0] if $showerr;
         };
     }
 
@@ -332,7 +363,7 @@ Currently the following governing functionalities are available:
 
 =over
 
-=item * logging of STDERR output to an autorotated file
+=item * logging of STDOUT & STDERR output to an autorotated file
 
 =item * execution time limit
 
@@ -428,6 +459,11 @@ The killing is implemented using L<IPC::Run>'s C<kill_kill()>.
 
 Upon timeout, exit code is set to 124.
 
+=item * show_stderr => BOOL (default: 1)
+
+Can be used to turn off STDERR output. If you turn this off and set
+C<log_stderr>, STDERR output will still be logged but not displayed to screen.
+
 =item * log_stderr => HASH
 
 Specify logging for STDERR. Logging will be done using L<File::Write::Rotate>.
@@ -437,6 +473,14 @@ writable, will be passed to File::Write::Rotate's constructor), C<size> (INT,
 also passed to File::Write::Rotate's constructor), C<histories> (INT, also
 passed to File::Write::Rotate's constructor), C<period> (STR, also passed to
 File::Write::Rotate's constructor).
+
+=item * show_stdout => BOOL (default: 1)
+
+Just like C<show_stdout>, but for STDOUT.
+
+=item * log_stdout => HASH
+
+Just like C<log_stderr>, but for STDOUT.
 
 =item * single_instance => BOOL
 
@@ -518,7 +562,7 @@ Not yet tested on Win32.
 
 =over
 
-=item * Govern multiple processes instead of just one.
+=item * Govern multiple processes instead of just one
 
 It's only natural that we expand to this, to reduce the number of monitor
 process.
@@ -544,12 +588,16 @@ For example, we might want to say "this command should not run past midnight".
 In general, we might also want to allow specifying a coderef for flexible
 timeout criteria?
 
-=item * Print messages when stopping/resuming due to load control.
+=item * Print messages when stopping/resuming due to load control
 
 Like B<loadwatch> does:
 
  Fri Mar 14 16:17:52 2014: load too high, stopping.
  Fri Mar 14 16:18:52 2014: load low, continuing.
+
+=item * Option to not use File::Write::Rotate for logging STDOUT/STDERR
+
+If command is output-heavy, FWR will become a significant overhead.
 
 =back
 
