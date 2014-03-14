@@ -236,7 +236,7 @@ sub govern_process {
                 $err->("Timeout ($args{timeout}s), killing child ...\n");
                 $self->_kill;
                 # mark with a special exit code that it's a timeout
-                $res = 201;
+                $res = 124;
                 last MAIN_LOOP;
             }
         }
@@ -381,9 +381,9 @@ Below is the list of exit codes that Process::Govern uses:
 
 =over
 
-=item * 201
+=item * 124
 
-Timeout.
+Timeout. The exit code is also used by B<timeout>.
 
 =item * 202
 
@@ -422,7 +422,7 @@ some processes still survive, they are sent the KILL signal.
 
 The killing is implemented using L<IPC::Run>'s C<kill_kill()>.
 
-Upon timeout, exit code is set to 201.
+Upon timeout, exit code is set to 124.
 
 =item * log_stderr => HASH
 
