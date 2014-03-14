@@ -491,11 +491,54 @@ process to monitor child process. This fact is more pronounced when you need to
 monitor lots of child processes. If you use, on the other hand, separate
 parent/monitoring process for timeout and then a separate one for CPU watching,
 and so on, there will potentially be a lot more processes running on the system.
+Compare for example:
+
+ % govproc --timeout 10 --load-watch CMD
+
+which only creates one monitoring process, versus:
+
+ % timeout 10s loadwatch CMD
+
+which will create two parent processes (three actually, B<loadwatch> apparently
+forks first).
 
 
 =head1 CAVEATS
 
 Not yet tested on Win32.
+
+
+=head1 TODO
+
+=over
+
+=item * Govern multiple processes instead of just one.
+
+It's only natural that we expand to this, to reduce the number of monitor
+process.
+
+We want to be able to set options for all processes or on a per-process basis.
+For example: when load watching, all processes can be stopped and resumed using
+the same high/load criteria, but some processes might want to have a different
+criteria. The same goes with timeout.
+
+Some options are for a per-process, e.g. capturing stderr.
+
+=item * Allow specifying time point (instead of duration) for timeout?
+
+For example, we might want to say "this command should not run past midnight".
+
+In general, we might also want to allow specifying a coderef for flexible
+timeout criteria?
+
+=item * Print messages when stopping/resuming due to load control
+
+Like B<loadwatch> does:
+
+ Fri Mar 14 16:17:52 2014: load too high, stopping.
+ Fri Mar 14 16:18:52 2014: load low, continuing.
+
+=back
 
 
 =head1 SEE ALSO
@@ -522,6 +565,8 @@ cPanel also includes a program called B<cpuwatch>.
 L<Proc::PID::File>, L<Sys::RunAlone>
 
 =item * Execution time limit
+
+B<timeout>.
 
 alarm() (but alarm() cannot be used to timeout external programs started by
 system()/backtick).
