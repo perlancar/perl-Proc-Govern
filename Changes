@@ -1,5 +1,16 @@
 Revision history for Process-Govern
 
+0.10     2014-03-14 (SHARYANTO)
+
+         [INCOMPATIBLE CHANGES]
+
+         - Change timeout exit code from 201 to 124 (following GNU coreutils'
+           'timeout' utility).
+
+         - Return exit code from govern_process() function, instead of exit(),
+           so it's more usable.
+
+
 0.09     2013-04-24 (SHARYANTO)
 
          - Add restarting (--restart).
