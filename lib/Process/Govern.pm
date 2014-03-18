@@ -604,6 +604,13 @@ If command is output-heavy, FWR will become a significant overhead.
 
 =head1 SEE ALSO
 
+Process::Govern uses L<IPC::Run> at its core.
+
+L<IPC::Cmd> also uses IPC::Run (as well as L<IPC::Open3> on some archaic systems
+that do not support IPC::Run) and its C<run_forked()> routine also has some of
+Process::Govern's functionality like capturing stdout and stderr, timeout,
+hiding (discarding) output.
+
 Process::Govern attempts (or will attempt, some day) to provide the
 functionality (or some of the functionality) of the builtins/modules/programs
 listed below:
