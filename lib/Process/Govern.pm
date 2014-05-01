@@ -110,6 +110,10 @@ $SPEC{govern_process} = {
         #},
     },
     result_naked => 1,
+    result => {
+        summary => "Child's exit code",
+        schema => 'int',
+    },
 };
 sub govern_process {
     my $self;
