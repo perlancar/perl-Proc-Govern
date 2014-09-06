@@ -1,5 +1,10 @@
 Revision history for Process-Govern
 
+0.13    2014-09-06 (PERLANCAR)
+
+	- Add option: --killfam.
+
+
 0.12     2014-03-14 (SHARYANTO)
 
          - bin/govproc: Forgot to add cmdline options for 'show_std{out,err}'
