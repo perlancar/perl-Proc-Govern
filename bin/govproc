@@ -42,6 +42,7 @@ GetOptions(
     "load-high=f"            => sub { $opts{load_watch} = 1; $opts{load_high_limit}  = $_[1] },
     "load-low=f"             => sub { $opts{load_watch} = 1; $opts{load_low_limit}   = $_[1] },
     "load-every=i"           => sub { $opts{load_watch} = 1; $opts{load_check_every} = $_[1] },
+    "killfam"                => sub { $opts{killfam} = 1 },
 );
 
 if ($opts{-version}) {
@@ -77,6 +78,7 @@ Options:
   --load-low=N              Set load low limit (default: 0.25).
   --load-every=N            Set load watch checking frequency, in seconds
                               (default: 10).
+  --killfam                 Use killfam instead of kill, to kill process family.
 _
     exit 0;
 }
@@ -113,6 +115,9 @@ if ($opts{load_watch}) {
     $ga{load_high_limit}  = $opts{load_high_limit};
     $ga{load_low_limit}   = $opts{load_low_limit};
     $ga{load_check_every} = $opts{load_check_every};
+}
+if ($opts{killfam}) {
+    $ga{killfam} = 1;
 }
 
 # show nicer text in 'ps', instead of '/usr/bin/perl /usr/local/bin/govprov

@@ -22,7 +22,16 @@ sub _suspend {
     my $self = shift;
     my $h = $self->{h};
     say "D:Suspending program ..." if $self->{debug};
-    kill STOP => $_->{PID} for @{ $h->{KIDS} };
+    if (@{ $h->{KIDS} }) {
+        my @args = (STOP => (map { $_->{PID} } @{ $h->{KIDS} }));
+        if ($self->{args}{killfam}) {
+            #say "D:killfam ".join(" ", @args) if $self->{debug};
+            Proc::Killfam::killfam(@args);
+        } else {
+            #say "D:kill ".join(" ", @args) if $self->{debug};
+            kill @args;
+        }
+    }
     $self->{suspended} = 1;
 }
 
@@ -30,7 +39,16 @@ sub _resume {
     my $self = shift;
     my $h = $self->{h};
     say "D:Resuming program ..." if $self->{debug};
-    kill CONT => $_->{PID} for @{ $h->{KIDS} };
+    if (@{ $h->{KIDS} }) {
+        my @args = (CONT => (map { $_->{PID} } @{ $h->{KIDS} }));
+        if ($self->{args}{killfam}) {
+            #say "D:killfam ".join(" ", @args) if $self->{debug};
+            Proc::Killfam::killfam(@args);
+        } else {
+            #say "D:kill ".join(" ", @args) if $self->{debug};
+            kill @args;
+        }
+    }
     $self->{suspended} = 0;
 }
 
@@ -70,6 +88,18 @@ $SPEC{govern_process} = {
         },
         load_low_limit => {
             schema => ['any*' => of => [[int => default => 0.25], 'code*']],
+        },
+        killfam => {
+            summary => 'Instead of kill, use killfam (kill family of process)',
+            schema  => 'bool',
+            description => <<'_',
+
+This can be useful e.g. to control load more successfully, if the
+load-generating processes are the subchildren of the one we're governing.
+
+This requires `Proc::Killfam` CPAN module, which is installed separately.
+
+_
         },
         log_stdout => {
             summary => 'Will be passed as arguments to File::Write::Rotate',
@@ -125,6 +155,8 @@ sub govern_process {
 
     my %args = @_;
     $self->{args} = \%args;
+
+    require Proc::Killfam if $args{killfam};
 
     my $debug = $ENV{DEBUG};
     $self->{debug} = $debug;
