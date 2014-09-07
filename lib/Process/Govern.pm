@@ -568,6 +568,14 @@ Planned arguments: restart_delay, check_alive.
 Return value: command exit code.
 
 
+=head1 ENVIRONMENT
+
+=head2 DEBUG => bool
+
+If set to true, will display debugging output to STDERR, e.g. when
+stopping/starting a process.
+
+
 =head1 FAQ
 
 =head2 Why use Process::Govern?
@@ -633,7 +641,8 @@ Like B<loadwatch> does:
 
 =item * Option to not use File::Write::Rotate for logging STDOUT/STDERR
 
-If command is output-heavy, FWR will become a significant overhead.
+If command is output-heavy, FWR will become a significant overhead. Unless FWR
+has the option of skipping logging (I'm contemplating on this) ...
 
 =back
 
