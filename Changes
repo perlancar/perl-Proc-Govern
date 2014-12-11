@@ -1,4 +1,10 @@
-Revision history for Process-Govern
+Revision history for Proc-Govern
+
+0.14    2014-12-11 (PERLANCAR) (unreleased)
+
+	- Rename dist/module from Process-Govern to Proc-Govern (Proc::*
+          namespace is the correct majority).
+
 
 0.13    2014-09-06 (PERLANCAR)
 

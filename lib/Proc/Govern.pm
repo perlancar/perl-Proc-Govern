@@ -1,10 +1,11 @@
-package Process::Govern;
+package Proc::Govern;
+
+# DATE
+# VERSION
 
 use 5.010001;
 use strict;
 use warnings;
-
-# VERSION
 
 use Exporter qw(import);
 our @EXPORT_OK = qw(govern_process);
@@ -366,7 +367,7 @@ To use via command-line (in most cases):
 
 To use directly as Perl module:
 
- use Process::Govern qw(govern_process);
+ use Proc::Govern qw(govern_process);
  govern_process(
      name       => 'myapp',
      command    => '/path/to/myapp',
@@ -381,10 +382,9 @@ To use directly as Perl module:
 
 =head1 DESCRIPTION
 
-Process::Govern is a child process manager. It is meant to be a convenient
-bundle (a single parent/monitoring process) for functionalities commonly needed
-when managing a child process. It comes with a command-line interface,
-L<govproc>.
+Proc::Govern is a child process manager. It is meant to be a convenient bundle
+(a single parent/monitoring process) for functionalities commonly needed when
+managing a child process. It comes with a command-line interface, L<govproc>.
 
 Background story: I first created this module to record STDERR output of scripts
 that I run from cron. The scripts already log debugging information using
@@ -448,7 +448,7 @@ Inspiration: djb's B<tcpserver>.
 
 =head1 EXIT CODES
 
-Below is the list of exit codes that Process::Govern uses:
+Below is the list of exit codes that Proc::Govern uses:
 
 =over
 
@@ -578,7 +578,7 @@ stopping/starting a process.
 
 =head1 FAQ
 
-=head2 Why use Process::Govern?
+=head2 Why use Proc::Govern?
 
 The main feature this module offers is convenience: it creates a single parent
 process to monitor child process. This fact is more pronounced when you need to
@@ -649,18 +649,16 @@ has the option of skipping logging (I'm contemplating on this) ...
 
 =head1 SEE ALSO
 
-Process::Govern uses L<IPC::Run> at its core.
+Proc::Govern uses L<IPC::Run> at its core.
 
 L<IPC::Cmd> also uses IPC::Run (as well as L<IPC::Open3> on systems that do not
 have IPC::Run installed or on some archaic systems that do not support IPC::Run)
-and its C<run_forked()> routine also has some of Process::Govern's
-functionalities like capturing stdout and stderr, timeout, hiding (discarding)
-output. If you only need those functionalities, you can use IPC::Cmd as it is a
-core module.
+and its C<run_forked()> routine also has some of Proc::Govern's functionalities
+like capturing stdout and stderr, timeout, hiding (discarding) output. If you
+only need those functionalities, you can use IPC::Cmd as it is a core module.
 
-Process::Govern attempts (or will attempt, some day) to provide the
-functionality (or some of the functionality) of the builtins/modules/programs
-listed below:
+Proc::Govern attempts (or will attempt, some day) to provide the functionality
+(or some of the functionality) of the builtins/modules/programs listed below:
 
 =over
 
