@@ -1,5 +1,13 @@
 Revision history for Proc-Govern
 
+0.15    2014-12-12 (PERLANCAR)
+
+	- No functional changes.
+
+	- Switch from using Sys::LoadAvg to Unix::Uptime because the former
+	  currently breaks on newer OSX (Maverick) [RT#100855].
+
+
 0.14    2014-12-11 (PERLANCAR)
 
 	- Rename dist/module from Process-Govern to Proc-Govern (Proc::*
