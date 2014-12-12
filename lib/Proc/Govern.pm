@@ -318,8 +318,8 @@ sub govern_process {
                 if (ref($lwhigh) eq 'CODE') {
                     $is_high = $lwhigh->($h);
                 } else {
-                    require Sys::LoadAvg;
-                    my @load = Sys::LoadAvg::loadavg();
+                    require Unix::Uptime;
+                    my @load = Unix::Uptime->load();
                     $is_high = $load[0] >= $lwhigh;
                 }
                 if ($is_high) {
@@ -331,8 +331,8 @@ sub govern_process {
                 if (ref($lwlow) eq 'CODE') {
                     $is_low = $lwlow->($h);
                 } else {
-                    require Sys::LoadAvg;
-                    my @load = Sys::LoadAvg::loadavg();
+                    require Unix::Uptime;
+                    my @load = Unix::Uptime->load();
                     $is_low = $load[0] <= $lwlow;
                 }
                 if ($is_low) {
@@ -542,14 +542,14 @@ too high and resumed if system load returns to a lower limit.
 =item * load_high_limit => INT|CODE (default: 1.25)
 
 Limit above which program should be suspended, if load watching is enabled. If
-integer, will be compared against L<Sys::LoadAvg>'s LOADAVG_1MIN value.
+integer, will be compared against C<< Unix::Uptime->load >>'s C<$load1> value.
 Alternatively, you can provide a custom routine here, code should return true if
 load is considered too high.
 
 =item * load_low_limit => INT|CODE (default: 0.25)
 
 Limit below which program should resume, if load watching is enabled. If
-integer, will be compared against L<Sys::LoadAvg>'s LOADAVG_1MIN value.
+integer, will be compared against C<< Unix::Uptime->load >>'s C<$load1> value.
 Alternatively, you can provide a custom routine here, code should return true if
 load is considered low.
 
