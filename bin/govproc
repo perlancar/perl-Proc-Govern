@@ -129,7 +129,7 @@ exit Proc::Govern::govern_process(%ga);
 
 1;
 # ABSTRACT: Run child process and govern its various aspects
-# PODNAME: govproc
+# PODNAME:
 
 =head1 SYNOPSIS
 
