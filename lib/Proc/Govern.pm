@@ -64,6 +64,7 @@ sub _kill {
 
 $SPEC{govern_process} = {
     v => 1.1,
+    summary => 'Run child process and govern its various aspects',
     args => {
         name => {
             schema => 'str*',
@@ -350,7 +351,7 @@ sub govern_process {
 }
 
 1;
-# ABSTRACT: Run child process and govern its various aspects
+# ABSTRACT:
 
 =for Pod::Coverage ^(new)$
 
