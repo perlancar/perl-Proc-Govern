@@ -111,9 +111,11 @@ Revision history for Proc-Govern
 
 0.02     2012-12-28 (SHARYANTO)
 
-         No functional changes. Touch up POD and update dependencies.
+         - No functional changes.
+
+         - Touch up POD and update dependencies.
 
 
 0.01     2012-12-26 (SHARYANTO)
 
-         First release.
+         - First release.
