@@ -603,51 +603,6 @@ forks first).
 Not yet tested on Win32.
 
 
-=head1 TODO
-
-=over
-
-=item * Govern multiple processes instead of just one
-
-It's only natural that we expand to this, to reduce the number of monitor
-process.
-
-We want to be able to set options for all processes or on a per-process basis.
-For example: when load watching, all processes can be stopped and resumed using
-the same high/load criteria, but some processes might want to have a different
-criteria. The same goes with timeout.
-
-Some options are for a per-process, e.g. capturing stderr.
-
-If we support multiple commands, e.g. C<< commands => ['cmd1', ['cmd2', 'arg']]
->> then we'll also need to return exit codes for each command, e.g. C<< [0, 124]
->>.
-
-We should exit only after all child processes terminate. But when a child exits,
-a hook can be defined e.g. C<on_child_exit>.
-
-=item * Allow specifying time point (instead of duration) for timeout?
-
-For example, we might want to say "this command should not run past midnight".
-
-In general, we might also want to allow specifying a coderef for flexible
-timeout criteria?
-
-=item * Print messages when stopping/resuming due to load control
-
-Like B<loadwatch> does:
-
- Fri Mar 14 16:17:52 2014: load too high, stopping.
- Fri Mar 14 16:18:52 2014: load low, continuing.
-
-=item * Option to not use File::Write::Rotate for logging STDOUT/STDERR
-
-If command is output-heavy, FWR will become a significant overhead. Unless FWR
-has the option of skipping logging (I'm contemplating on this) ...
-
-=back
-
-
 =head1 SEE ALSO
 
 Proc::Govern uses L<IPC::Run> at its core.
