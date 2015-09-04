@@ -65,31 +65,94 @@ sub _kill {
 $SPEC{govern_process} = {
     v => 1.1,
     summary => 'Run child process and govern its various aspects',
+    description => <<'_',
+
+It basically uses `IPC::Run` and a loop to check various conditions during the
+lifetime of the child process.
+
+TODO: restart_delay, check_alive.
+
+_
     args => {
         name => {
             schema => 'str*',
+            description => <<'_',
+
+Should match regex `\A\w+\z`. Used in several places, e.g. passed as `prefix` in
+`File::Write::Rotate`'s constructor as well as used as name of PID file.
+
+If not given, will be taken from command.
+
+_
         },
         command => {
             schema => ['any*' => of => ['str*', ['array*' => of => 'str*']]],
             req => 1,
+            summary => 'Command to run',
+            description => <<'_',
+
+Passed to `IPC::Run`'s `start()`.
+
+_
         },
         single_instance => {
             schema => [bool => default => 0],
+            description => <<'_',
+
+If set to true, will prevent running multiple instances simultaneously.
+Implemented using `Proc::PID::File`. You will also normally have to set
+`pid_dir`, unless your script runs as root, in which case you can use the
+default `/var/run`.
+
+_
+        },
+        pid_dir => {
+            summary => 'Directory to put PID file in',
+            schema => 'str*',
         },
         on_multiple_instance => {
             schema => ['str*' => in => ['exit']],
+            description => <<'_',
+
+Can be set to `exit` to silently exit when there is already a running instance.
+Otherwise, will print an error message `Program <NAME> already running`.
+
+_
         },
         load_watch => {
             schema => [bool => default => 0],
+            description => <<'_',
+
+If set to 1, enable load watching. Program will be suspended when system load is
+too high and resumed if system load returns to a lower limit.
+
+_
         },
         load_check_every => {
             schema => [int => default => 10],
+            summary => 'Frequency of load checking, in seconds',
         },
         load_high_limit => {
             schema => ['any*' => of => [[int => default => 1.25], 'code*']],
+            description => <<'_',
+
+Limit above which program should be suspended, if load watching is enabled. If
+integer, will be compared against `Unix::Uptime->load`'s `$load1` value.
+Alternatively, you can provide a custom routine here, code should return true if
+load is considered too high.
+
+_
         },
         load_low_limit => {
             schema => ['any*' => of => [[int => default => 0.25], 'code*']],
+            description => <<'_',
+
+Limit below which program should resume, if load watching is enabled. If
+integer, will be compared against `Unix::Uptime->load`'s `$load1` value.
+Alternatively, you can provide a custom routine here, code should return true if
+load is considered low.
+
+_
         },
         killfam => {
             summary => 'Instead of kill, use killfam (kill family of process)',
@@ -104,7 +167,7 @@ This requires `Proc::Killfam` CPAN module, which is installed separately.
 _
         },
         log_stdout => {
-            summary => 'Will be passed as arguments to File::Write::Rotate',
+            summary => 'Will be passed as arguments to `File::Write::Rotate`',
             schema => ['hash*' => keys => {
                 dir       => 'str*',
                 size      => 'str*',
@@ -113,9 +176,21 @@ _
         },
         show_stdout => {
             schema => [bool => default => 1],
+            summary => 'Just like `show_stderr`, but for STDOUT',
         },
         log_stderr => {
-            summary => 'Will be passed as arguments to File::Write::Rotate',
+            summary => 'Will be passed as arguments to `File::Write::Rotate`',
+            description => <<'_',
+
+Specify logging for STDERR. Logging will be done using `File::Write::Rotate`.
+Known hash keys: `dir` (STR, defaults to `/var/log`, directory, preferably
+absolute, where the log file(s) will reside, should already exist and be
+writable, will be passed to `File::Write::Rotate`'s constructor), `size` (int,
+also passed to `File::Write::Rotate`'s constructor), `histories` (int, also
+passed to `File::Write::Rotate`'s constructor), `period` (str, also passed to
+`File::Write::Rotate`'s constructor).
+
+_
             schema => ['hash*' => keys => {
                 dir       => 'str*',
                 size      => 'str*',
@@ -123,13 +198,33 @@ _
             }],
         },
         show_stderr => {
-            schema => [bool => default => 1],
+            schema => ['bool'],
+            default => 1,
+            description => <<'_',
+
+Can be used to turn off STDERR output. If you turn this off and set
+`log_stderr`, STDERR output will still be logged but not displayed to screen.
+
+_
         },
         timeout => {
             schema => ['int*'],
+            summary => 'Apply execution time limit, in seconds',
+            description => <<'_',
+
+After this time is reached, process (and all its descendants) are first sent the
+TERM signal. If after 30 seconds pass some processes still survive, they are
+sent the KILL signal.
+
+The killing is implemented using `IPC::Run`'s `kill_kill()`.
+
+Upon timeout, exit code is set to 124.
+
+_
         },
         restart => {
             schema => [bool => default => 1],
+            summary => 'If set to true, do restart',
         },
         # not yet defined
         #restart_delay => {
@@ -140,6 +235,15 @@ _
         #    # standard checks like TCP/UDP connection to some port, etc.
         #    schema => 'any*',
         #},
+    },
+    args_rels => {
+        'dep_all&' => [
+            [pid_dir => ['single_instance']],
+            [load_low_limit   => ['load_watch']], # XXX should only be allowed when load_watch is true
+            [load_high_limit  => ['load_watch']], # XXX should only be allowed when load_watch is true
+            [load_check_every => ['load_watch']], # XXX should only be allowed when load_watch is true
+         ],
+
     },
     result_naked => 1,
     result => {
@@ -462,111 +566,6 @@ Timeout. The exit code is also used by B<timeout>.
 Another instance is already running (when C<single_instance> option is true).
 
 =back
-
-
-=head1 FUNCTIONS
-
-=head2 govern_process(%args) => INT
-
-Run child process and govern its various aspects. It basically uses L<IPC::Run>
-and a loop to check various conditions during the lifetime of the child process.
-Known arguments (required argument is marked with C<*>):
-
-=over
-
-=item * command* => STR | ARRAYREF
-
-Program to run. Passed to IPC::Run's C<start()>.
-
-=item * name => STRING
-
-Should match regex C</\A\w+\z/>. Used in several places, e.g. passed as
-C<prefix> in L<File::Write::Rotate>'s constructor as well as used as name of PID
-file.
-
-If not given, will be taken from command.
-
-=item * timeout => INT
-
-Apply execution time limit, in seconds. After this time is reached, process (and
-all its descendants) are first sent the TERM signal. If after 30 seconds pass
-some processes still survive, they are sent the KILL signal.
-
-The killing is implemented using L<IPC::Run>'s C<kill_kill()>.
-
-Upon timeout, exit code is set to 124.
-
-=item * show_stderr => BOOL (default: 1)
-
-Can be used to turn off STDERR output. If you turn this off and set
-C<log_stderr>, STDERR output will still be logged but not displayed to screen.
-
-=item * log_stderr => HASH
-
-Specify logging for STDERR. Logging will be done using L<File::Write::Rotate>.
-Known hash keys: C<dir> (STR, defaults to /var/log, directory, preferably
-absolute, where the log file(s) will reside, should already exist and be
-writable, will be passed to File::Write::Rotate's constructor), C<size> (INT,
-also passed to File::Write::Rotate's constructor), C<histories> (INT, also
-passed to File::Write::Rotate's constructor), C<period> (STR, also passed to
-File::Write::Rotate's constructor).
-
-=item * show_stdout => BOOL (default: 1)
-
-Just like C<show_stdout>, but for STDOUT.
-
-=item * log_stdout => HASH
-
-Just like C<log_stderr>, but for STDOUT.
-
-=item * single_instance => BOOL
-
-If set to true, will prevent running multiple instances simultaneously.
-Implemented using L<Proc::PID::File>. You will also normally have to set
-C<pid_dir>, unless your script runs as root, in which case you can use the
-default C</var/run>.
-
-=item * pid_dir => STR (default: /var/run)
-
-Directory to put PID file in. Relevant if C<single> is set to true.
-
-=item * on_multiple_instance => STR
-
-Can be set to 'exit' to silently exit when there is already a running instance.
-Otherwise, will print an error message 'Program <NAME> already running'.
-
-=item * load_watch => BOOL (default: 0)
-
-If set to 1, enable load watching. Program will be suspended when system load is
-too high and resumed if system load returns to a lower limit.
-
-=item * load_high_limit => INT|CODE (default: 1.25)
-
-Limit above which program should be suspended, if load watching is enabled. If
-integer, will be compared against C<< Unix::Uptime->load >>'s C<$load1> value.
-Alternatively, you can provide a custom routine here, code should return true if
-load is considered too high.
-
-=item * load_low_limit => INT|CODE (default: 0.25)
-
-Limit below which program should resume, if load watching is enabled. If
-integer, will be compared against C<< Unix::Uptime->load >>'s C<$load1> value.
-Alternatively, you can provide a custom routine here, code should return true if
-load is considered low.
-
-=item * load_check_every => INT (default: 10)
-
-Frequency of load checking, in seconds.
-
-=item * restart => BOOL (default: 0)
-
-If set to true, do restart.
-
-=back
-
-Planned arguments: restart_delay, check_alive.
-
-Return value: command exit code.
 
 
 =head1 ENVIRONMENT
