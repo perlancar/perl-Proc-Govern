@@ -129,8 +129,9 @@ too high and resumed if system load returns to a lower limit.
 _
         },
         load_check_every => {
-            schema => [int => default => 10],
-            summary => 'Frequency of load checking, in seconds',
+            schema => [duration => default => 10],
+            'x.perl.coerce_to' => 'int(secs)',
+            summary => 'Frequency of load checking',
         },
         load_high_limit => {
             schema => ['any*' => of => [[int => default => 1.25], 'code*']],
@@ -228,7 +229,7 @@ _
         },
         # not yet defined
         #restart_delay => {
-        #    schema => [int => default => 0],
+        #    schema => ['duration*', default=>0],
         #},
         #check_alive => {
         #    # not yet defined, can supply a custom coderef, or specify some
