@@ -1,5 +1,12 @@
 Revision history for Proc-Govern
 
+0.18    2016-04-07 (PERLANCAR)
+
+	- No functional changes.
+
+	- Make Proc::Killfam a RuntimeRecommends prereq.
+
+
 0.17    2015-09-04 (PERLANCAR)
 
 	- No functional changes.
