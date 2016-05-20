@@ -130,7 +130,6 @@ _
         },
         load_check_every => {
             schema => [duration => default => 10],
-            'x.perl.coerce_to' => 'int(secs)',
             summary => 'Frequency of load checking',
         },
         load_high_limit => {
