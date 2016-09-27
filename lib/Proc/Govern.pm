@@ -67,8 +67,8 @@ $SPEC{govern_process} = {
     summary => 'Run child process and govern its various aspects',
     description => <<'_',
 
-It basically uses `IPC::Run` and a loop to check various conditions during the
-lifetime of the child process.
+It basically uses <pm:IPC::Run> and a loop to check various conditions during
+the lifetime of the child process.
 
 TODO: restart_delay, check_alive.
 
@@ -79,7 +79,7 @@ _
             description => <<'_',
 
 Should match regex `\A\w+\z`. Used in several places, e.g. passed as `prefix` in
-`File::Write::Rotate`'s constructor as well as used as name of PID file.
+<pm:File::Write::Rotate>'s constructor as well as used as name of PID file.
 
 If not given, will be taken from command.
 
@@ -91,7 +91,7 @@ _
             summary => 'Command to run',
             description => <<'_',
 
-Passed to `IPC::Run`'s `start()`.
+Passed to <pm:IPC::Run>'s `start()`.
 
 _
         },
@@ -100,7 +100,7 @@ _
             description => <<'_',
 
 If set to true, will prevent running multiple instances simultaneously.
-Implemented using `Proc::PID::File`. You will also normally have to set
+Implemented using <pm:Proc::PID::File>. You will also normally have to set
 `pid_dir`, unless your script runs as root, in which case you can use the
 default `/var/run`.
 
@@ -137,7 +137,7 @@ _
             description => <<'_',
 
 Limit above which program should be suspended, if load watching is enabled. If
-integer, will be compared against `Unix::Uptime->load`'s `$load1` value.
+integer, will be compared against <pm:Unix::Uptime>`->load`'s `$load1` value.
 Alternatively, you can provide a custom routine here, code should return true if
 load is considered too high.
 
@@ -148,7 +148,7 @@ _
             description => <<'_',
 
 Limit below which program should resume, if load watching is enabled. If
-integer, will be compared against `Unix::Uptime->load`'s `$load1` value.
+integer, will be compared against <pm:Unix::Uptime>`->load`'s `$load1` value.
 Alternatively, you can provide a custom routine here, code should return true if
 load is considered low.
 
@@ -162,7 +162,7 @@ _
 This can be useful e.g. to control load more successfully, if the
 load-generating processes are the subchildren of the one we're governing.
 
-This requires `Proc::Killfam` CPAN module, which is installed separately.
+This requires <pm:Proc::Killfam> CPAN module, which is installed separately.
 
 _
         },
@@ -182,13 +182,13 @@ _
             summary => 'Will be passed as arguments to `File::Write::Rotate`',
             description => <<'_',
 
-Specify logging for STDERR. Logging will be done using `File::Write::Rotate`.
+Specify logging for STDERR. Logging will be done using <pm:File::Write::Rotate>.
 Known hash keys: `dir` (STR, defaults to `/var/log`, directory, preferably
 absolute, where the log file(s) will reside, should already exist and be
-writable, will be passed to `File::Write::Rotate`'s constructor), `size` (int,
-also passed to `File::Write::Rotate`'s constructor), `histories` (int, also
-passed to `File::Write::Rotate`'s constructor), `period` (str, also passed to
-`File::Write::Rotate`'s constructor).
+writable, will be passed to <pm:File::Write::Rotate>'s constructor), `size`
+(int, also passed to <pm:File::Write::Rotate>'s constructor), `histories` (int,
+also passed to <pm:File::Write::Rotate>'s constructor), `period` (str, also
+passed to <pm:File::Write::Rotate>'s constructor).
 
 _
             schema => ['hash*' => keys => {
@@ -216,7 +216,7 @@ After this time is reached, process (and all its descendants) are first sent the
 TERM signal. If after 30 seconds pass some processes still survive, they are
 sent the KILL signal.
 
-The killing is implemented using `IPC::Run`'s `kill_kill()`.
+The killing is implemented using <pm:IPC::Run>'s `kill_kill()`.
 
 Upon timeout, exit code is set to 124.
 
