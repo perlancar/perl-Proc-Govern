@@ -44,6 +44,7 @@ GetOptions(
     "load-low=f"             => sub { $opts{load_watch} = 1; $opts{load_low_limit}   = $_[1] },
     "load-every=i"           => sub { $opts{load_watch} = 1; $opts{load_check_every} = $_[1] },
     "killfam"                => sub { $opts{killfam} = 1 },
+    "no-screensaver"         => \$opts{no_screensaver},
 );
 
 if ($opts{-version}) {
@@ -59,12 +60,12 @@ Options:
   --name=S                  Set process name.
   --single-instance         Prevent running multiple instances simultaneously.
   --restart                 Restart when child process dies/exits.
-  --noshow-stderr           Hide stderr output (but you can still log it).
+  --no-show-stderr          Hide stderr output (but you can still log it).
   --log-stderr-dir=S        Enable logging of stderr and set log directory.
   --log-stderr-size=N       Set log file size limit, in bytes, default 10MB.
   --log-stderr-histories=N  Set number of rotated log files to keep, default 10.
   --log-stderr-period=S     Enable periodic rotation (daily/monthly/yearly).
-  --noshow-stdout           Hide stdout output (but you can still log it).
+  --no-show-stdout          Hide stdout output (but you can still log it).
   --log-stdout-dir=S        Enable logging of stdout and set log directory.
   --log-stdout-size=N       Set log file size limit, in bytes, default 10MB.
   --log-stdout-histories=N  Set number of rotated log files to keep, default 10.
@@ -80,6 +81,7 @@ Options:
   --load-every=N            Set load watch checking frequency, in seconds
                               (default: 10).
   --killfam                 Use killfam instead of kill, to kill process family.
+  --no-screensaver          Prevent screensaver from activating.
 _
     exit 0;
 }
@@ -92,6 +94,7 @@ my %ga = (
     pid_dir         => $opts{pid_dir},
     timeout         => $opts{timeout},
     on_multiple_instance => $opts{on_multiple_instance},
+    (no_screensaver  => $opts{no_screensaver}) x !!$opts{no_screensaver},
 );
 $ga{show_stderr} = $opts{show_stderr};
 if ($opts{log_stderr_dir}) {

@@ -105,6 +105,7 @@ Implemented using <pm:Proc::PID::File>. You will also normally have to set
 default `/var/run`.
 
 _
+            tags => ['category:instance-control'],
         },
         pid_dir => {
             summary => 'Directory to put PID file in',
@@ -118,6 +119,7 @@ Can be set to `exit` to silently exit when there is already a running instance.
 Otherwise, will print an error message `Program <NAME> already running`.
 
 _
+            tags => ['category:instance-control'],
         },
         load_watch => {
             schema => [bool => default => 0],
@@ -131,6 +133,7 @@ _
         load_check_every => {
             schema => [duration => default => 10],
             summary => 'Frequency of load checking',
+            tags => ['category:load-control'],
         },
         load_high_limit => {
             schema => ['any*' => of => [[int => default => 1.25], 'code*']],
@@ -142,6 +145,7 @@ Alternatively, you can provide a custom routine here, code should return true if
 load is considered too high.
 
 _
+            tags => ['category:load-control'],
         },
         load_low_limit => {
             schema => ['any*' => of => [[int => default => 0.25], 'code*']],
@@ -153,6 +157,7 @@ Alternatively, you can provide a custom routine here, code should return true if
 load is considered low.
 
 _
+            tags => ['category:load-control'],
         },
         killfam => {
             summary => 'Instead of kill, use killfam (kill family of process)',
@@ -173,10 +178,12 @@ _
                 size      => 'str*',
                 histories => 'int*',
             }],
+            tags => ['category:logging'],
         },
         show_stdout => {
             schema => [bool => default => 1],
             summary => 'Just like `show_stderr`, but for STDOUT',
+            tags => ['category:output-control'],
         },
         log_stderr => {
             summary => 'Will be passed as arguments to `File::Write::Rotate`',
@@ -196,6 +203,7 @@ _
                 size      => 'str*',
                 histories => 'int*',
             }],
+            tags => ['category:logging'],
         },
         show_stderr => {
             schema => ['bool'],
@@ -206,6 +214,7 @@ Can be used to turn off STDERR output. If you turn this off and set
 `log_stderr`, STDERR output will still be logged but not displayed to screen.
 
 _
+            tags => ['category:output-control'],
         },
         timeout => {
             schema => ['int*'],
@@ -221,20 +230,28 @@ The killing is implemented using <pm:IPC::Run>'s `kill_kill()`.
 Upon timeout, exit code is set to 124.
 
 _
+            tags => ['category:timeout'],
         },
         restart => {
             schema => [bool => default => 1],
             summary => 'If set to true, do restart',
+            tags => ['category:restart'],
         },
         # not yet defined
         #restart_delay => {
         #    schema => ['duration*', default=>0],
+        #    tags => ['category:restart'],
         #},
         #check_alive => {
         #    # not yet defined, can supply a custom coderef, or specify some
         #    # standard checks like TCP/UDP connection to some port, etc.
         #    schema => 'any*',
         #},
+        no_screensaver => {
+            summary => 'Prevent screensaver from being activated',
+            schema => ['bool*', is=>1],
+            tags => ['category:screensaver'],
+        },
     },
     args_rels => {
         'dep_all&' => [
@@ -263,6 +280,7 @@ sub govern_process {
     $self->{args} = \%args;
 
     require Proc::Killfam if $args{killfam};
+    require Screensaver::Any if $args{no_screensaver};
 
     my $debug = $ENV{DEBUG};
     $self->{debug} = $debug;
@@ -303,6 +321,8 @@ sub govern_process {
     my $lwfreq = $args{load_check_every} // 10;
     my $lwhigh = $args{load_high_limit}  // 1.25;
     my $lwlow  = $args{load_low_limit}   // 0.25;
+
+    my $noss   = $args{no_screensaver};
 
     ###
 
@@ -384,6 +404,7 @@ sub govern_process {
     local $SIG{CHLD} = $chld_handler if $args{restart};
 
     my $lastlw_time;
+    my ($noss_screensaver, $noss_timeout, $noss_lastprevent_time);
 
   MAIN_LOOP:
     while (1) {
@@ -446,6 +467,41 @@ sub govern_process {
                 }
             }
             $lastlw_time = $now;
+        }
+
+      NOSS:
+        {
+            last unless $noss;
+            last unless !$noss_lastprevent_time ||
+                $noss_lastprevent_time <= ($now-$noss_timeout+5);
+            say "D:Preventing screensaver from activating" if $debug;
+            if (!$noss_lastprevent_time) {
+                $noss_screensaver = Screensaver::Any::detect_screensaver();
+                if (!$noss_screensaver) {
+                    warn "Can't detect any known screensaver, ".
+                        "will skip preventing screensaver from activating\n";
+                    $noss = 0;
+                    last NOSS;
+                }
+                my $res = Screensaver::Any::get_screensaver_timeout(
+                    screensaver => $noss_screensaver,
+                );
+                if ($res->[0] != 200) {
+                    warn "Can't get screensaver timeout ($res->[0]: $res->[1])".
+                        ", will skip preventing screensaver from activating\n";
+                    $noss = 0;
+                    last NOSS;
+                }
+                $noss_timeout = $res->[2];
+            }
+            my $res = Screensaver::Any::prevent_screensaver_activated(
+                screensaver => $noss_screensaver,
+            );
+            if ($res->[0] != 200) {
+                warn "Can't prevent screensaver from activating ".
+                    "($res->[0]: $res->[1])\n";
+            }
+            $noss_lastprevent_time = $now;
         }
 
     } # MAINLOOP
