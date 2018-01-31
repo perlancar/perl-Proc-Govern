@@ -130,7 +130,6 @@ $0 = "govproc" . " " . join(" ", @SAVE_ARGV[0..(@SAVE_ARGV-@ARGV-1)]);
 
 exit Proc::Govern::govern_process(%ga);
 
-1;
 # ABSTRACT: Run child process and govern its various aspects
 # PODNAME:
 
