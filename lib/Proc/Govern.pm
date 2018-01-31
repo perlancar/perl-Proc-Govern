@@ -86,7 +86,7 @@ If not given, will be taken from command.
 _
         },
         command => {
-            schema => ['any*' => of => ['str*', ['array*' => of => 'str*']]],
+            schema => ['array*' => of => 'str*'],
             req => 1,
             summary => 'Command to run',
             description => <<'_',
@@ -289,10 +289,11 @@ sub govern_process {
 
     my $cmd = $args{command};
     defined($cmd) or die "Please specify command\n";
+    ref($cmd) eq 'ARRAY' or die "Command must be arrayref of strings";
 
     my $name = $args{name};
     if (!defined($name)) {
-        $name = ref($cmd) eq 'ARRAY' ? $cmd->[0] : ref($cmd) ? 'prog' : $cmd;
+        $name = $cmd->[0];
         $name =~ s!.*/!!; $name =~ s/\W+/_/g;
         length($name) or $name = "prog";
     }
@@ -531,7 +532,7 @@ To use directly as Perl module:
  use Proc::Govern qw(govern_process);
  govern_process(
      name       => 'myapp',
-     command    => '/path/to/myapp',
+     command    => ['/path/to/myapp', 'some', 'args'],
      timeout    => 3600,
      log_stderr => {
          dir       => '/var/log/myapp',
