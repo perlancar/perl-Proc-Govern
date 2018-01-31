@@ -334,14 +334,14 @@ sub govern_process {
         $fwrargs{prefix}   = $name;
         my $fwr = File::Write::Rotate->new(%fwrargs);
         $out = sub {
-            print STDOUT $_[0] if $showout;
+            print STDOUT $_[0]//'' if $showout;
             # XXX prefix with timestamp, how long script starts,
             $_[0] =~ s/^/STDOUT: /mg;
             $fwr->write($_[0]);
         };
     } else {
         $out = sub {
-            print STDOUT $_[0] if $showout;
+            print STDOUT $_[0]//'' if $showout;
         };
     }
 
@@ -353,14 +353,14 @@ sub govern_process {
         $fwrargs{prefix}   = $name;
         my $fwr = File::Write::Rotate->new(%fwrargs);
         $err = sub {
-            print STDERR $_[0] if $showerr;
+            print STDERR $_[0]//'' if $showerr;
             # XXX prefix with timestamp, how long script starts,
             $_[0] =~ s/^/STDERR: /mg;
             $fwr->write($_[0]);
         };
     } else {
         $err = sub {
-            print STDERR $_[0] if $showerr;
+            print STDERR $_[0]//'' if $showerr;
         };
     }
 
