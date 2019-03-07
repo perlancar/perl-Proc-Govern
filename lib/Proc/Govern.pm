@@ -298,7 +298,7 @@ sub govern_process {
         length($name) or $name = "prog";
     }
     defined($name) or die "Please specify name\n";
-    $name =~ /\A\w+\z/ or die "Invalid name, please use letters/numbers only\n";
+    $name =~ /\A\w+\z/ or die __PACKAGE__, ": Invalid name, please use letters/numbers only";
     $self->{name} = $name;
 
     if ($args{single_instance}) {
