@@ -45,6 +45,8 @@ GetOptions(
     "load-every=i"           => sub { $opts{load_watch} = 1; $opts{load_check_every} = $_[1] },
     "killfam"                => sub { $opts{killfam} = 1 },
     "no-screensaver"         => \$opts{no_screensaver},
+    "euid=i"                 => \$opts{euid},
+    "egid=s"                 => \$opts{egid},
 );
 
 if ($opts{-version}) {
@@ -82,6 +84,9 @@ Options:
                               (default: 10).
   --killfam                 Use killfam instead of kill, to kill process family.
   --no-screensaver          Prevent screensaver from activating.
+  --euid=I                  Set EUID of child process.
+  --egid=S                  Set EGIDs of child process.
+
 _
     exit 0;
 }
@@ -95,6 +100,8 @@ my %ga = (
     timeout         => $opts{timeout},
     on_multiple_instance => $opts{on_multiple_instance},
     (no_screensaver  => $opts{no_screensaver}) x !!$opts{no_screensaver},
+    (euid            => $opts{euid}) x !!(defined $opts{euid}),
+    (egid            => $opts{egid}) x !!(defined $opts{euid}),
 );
 $ga{show_stderr} = $opts{show_stderr};
 if ($opts{log_stderr_dir}) {
@@ -135,7 +142,7 @@ exit Proc::Govern::govern_process(%ga);
 
 =head1 SYNOPSIS
 
- % govproc [opts] COMMAND ...
+ % govproc [options] <command>...
 
 See C<govproc --help> for list of options.
 

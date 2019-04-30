@@ -12,6 +12,8 @@ our @EXPORT_OK = qw(govern_process);
 
 our %SPEC;
 
+use IPC::Run::Patch::Setuid ();
+use IPC::Run (); # just so prereq can be detected
 use Time::HiRes qw(sleep);
 
 sub new {
@@ -129,6 +131,7 @@ If set to 1, enable load watching. Program will be suspended when system load is
 too high and resumed if system load returns to a lower limit.
 
 _
+            tags => ['category:load-control'],
         },
         load_check_every => {
             schema => [duration => default => 10],
@@ -144,6 +147,8 @@ integer, will be compared against <pm:Unix::Uptime>`->load`'s `$load1` value.
 Alternatively, you can provide a custom routine here, code should return true if
 load is considered too high.
 
+Note: `load_watch` needs to be set to true first for this to be effective.
+
 _
             tags => ['category:load-control'],
         },
@@ -155,6 +160,8 @@ Limit below which program should resume, if load watching is enabled. If
 integer, will be compared against <pm:Unix::Uptime>`->load`'s `$load1` value.
 Alternatively, you can provide a custom routine here, code should return true if
 load is considered low.
+
+Note: `load_watch` needs to be set to true first for this to be effective.
 
 _
             tags => ['category:load-control'],
@@ -251,6 +258,26 @@ _
             summary => 'Prevent screensaver from being activated',
             schema => ['bool*', is=>1],
             tags => ['category:screensaver'],
+        },
+        euid => {
+            summary => 'Set EUID of command process',
+            schema => 'uint*',
+            description => <<'_',
+
+Need to be root to be able to setuid.
+
+_
+            tags => ['category:setuid'],
+        },
+        egid => {
+            summary => 'Set EGID(s) of command process',
+            schema => 'str*',
+            description => <<'_',
+
+Need to be root to be able to setuid.
+
+_
+            tags => ['category:setuid'],
         },
     },
     args_rels => {
@@ -370,13 +397,19 @@ sub govern_process {
 
     my $do_start = sub {
         $start_time = time();
-        require IPC::Run;
+        IPC::Run::Patch::Setuid->import(
+            -warn_target_loaded => 0,
+            -euid => $args{euid},
+            -egid => $args{egid},
+        ) if defined $args{euid} || defined $args{egid};
         say "D:(Re)starting program $name ..." if $debug;
         $to = IPC::Run::timeout(1);
         #$self->{to} = $to;
         $h  = IPC::Run::start($cmd, \*STDIN, $out, $err, $to)
             or die "Can't start program: $?\n";
         $self->{h} = $h;
+        IPC::Run::Patch::Setuid->unimport()
+              if defined $args{euid} || defined $args{egid};
     };
 
     $do_start->();
@@ -548,8 +581,10 @@ To use as Perl module:
          size      => '16M',
          histories => 12,
      },
+     show_stdout => 0,                        # optional. can be set to 0 to suppress stdout output. note:
+                                              #           stdout can still be logged even if not shown.
      show_stderr => 0,                        # optional. can be set to 0 to suppress stderr output. note:
-                                              #           stderr will still be logged even if not shown.
+                                              #           stderr can still be logged even if not shown.
 
      # load control options
      load_watch => 1,           # optional. can be set to 1 to enable load control.
@@ -567,6 +602,10 @@ To use as Perl module:
      # screensaver control options
      no_screensaver => 1,       # optional. if set to 1, will prevent screensaver from being activated while command
                                 #           is running.
+
+     # setuid options
+     euid => 1000,              # optional. sets euid of command process. note: need to be root to be able to setuid.
+     egid => 1000,              # optional. sets egid(s) of command process.
  );
 
 To use via command-line:
@@ -630,8 +669,6 @@ With an option to autorestart if process' memory size grow out of limit.
 =item * limit STDIN input, STDOUT/STDERR output?
 
 =item * trap/handle some signals for the child process?
-
-=item * set UID/GID?
 
 =item * provide daemon functionality?
 
