@@ -518,28 +518,64 @@ sub govern_process {
 
 =head1 SYNOPSIS
 
-To use via command-line (in most cases):
-
- % govproc \
-       --timeout 3600 \
-       --log-stderr-dir        /var/log/myapp/ \
-       --log-stderr-size       16M \
-       --log-stderr-histories  12 \
-   /path/to/myapp
-
-To use directly as Perl module:
+To use as Perl module:
 
  use Proc::Govern qw(govern_process);
- govern_process(
-     name       => 'myapp',
-     command    => ['/path/to/myapp', 'some', 'args'],
-     timeout    => 3600,
-     log_stderr => {
+ my $exit_code = govern_process(
+     command    => ['/path/to/myapp', 'some', 'args'], # required
+
+     name       => 'myapp',                            # optional, default will be taken from command. must be alphanum only.
+
+     # options to control number of instances
+     single_instance      => 1,               # optional. if set to 1 will fail if another instance is already running.
+                                              #           implemented with pid files.
+     pid_dir              => "/var/run",      # optional. defaults to /var/run. pid filename is '<name>.pid'
+     on_multiple_instance => "exit",          # optional. can be set to 'exit' to silently exit when another instance
+                                              #           is already running. otherwise prints an error msg.
+
+     # timeout options
+     timeout    => 3600,                      # optional, default is no timeout
+     killfam    => 1,                         # optional. can be set to 1 to kill using killfam.
+
+     # output logging options
+     log_stderr => {                          # optional, passed to File::Write::Rotate
          dir       => '/var/log/myapp',
          size      => '16M',
          histories => 12,
      },
+     log_stdout => {                          # optional, passed to File::Write::Rotate
+         dir       => '/var/log/myapp.out',
+         size      => '16M',
+         histories => 12,
+     },
+     show_stderr => 0,                        # optional. can be set to 0 to suppress stderr output. note:
+                                              #           stderr will still be logged even if not shown.
+
+     # load control options
+     load_watch => 1,           # optional. can be set to 1 to enable load control.
+     load_high_limit => 5,      # optional, default 1.25. at what load command should be paused? can also be set
+                                #           to a coderef that returns 1 when load is considered too high.
+                                #           note: just setting load_high_limit or load_low_limit won't automatically
+                                #           enable load control.
+     load_low_limit  => 2,      # optional, default 0.25. at what load paused command should be resumed? can also
+                                #           be set to a coderef that returns 1 when load is considered low already.
+     load_check_every => 20,    # optional, default 10. frequency of load checking (in seconds).
+
+     # restart options
+     restart => 1,              # optional. if set to 1, will restart command if exit code is not zero.
+
+     # screensaver control options
+     no_screensaver => 1,       # optional. if set to 1, will prevent screensaver from being activated while command
+                                #           is running.
  );
+
+To use via command-line:
+
+ % govproc [options] <command>...
+
+Example:
+
+ % govproc --timeout 86400 --load-watch --load-high 4 --load-low 0.75 backup-db
 
 
 =head1 DESCRIPTION
