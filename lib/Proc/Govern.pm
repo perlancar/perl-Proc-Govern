@@ -303,8 +303,16 @@ sub govern_process {
         $self = __PACKAGE__->new;
     }
 
+    # assign and check arguments
     my %args = @_;
     $self->{args} = \%args;
+    if (defined $args{euid}) {
+        $args{euid} =~ /\A[0-9]+\z/ or die "euid has to be integer";
+    }
+    if (defined $args{egid}) {
+        $args{egid} =~ /\A[0-9]+( [0-9]+)*\z/
+            or die "egid has to be integer or integers separated by space";
+    }
 
     require Proc::Killfam if $args{killfam};
     require Screensaver::Any if $args{no_screensaver};
@@ -315,7 +323,7 @@ sub govern_process {
     my $exitcode;
 
     my $cmd = $args{command};
-    defined($cmd) or die "Please specify command\n";
+    defined($cmd) or die "Please specify command";
     ref($cmd) eq 'ARRAY' or die "Command must be arrayref of strings";
 
     my $name = $args{name};
@@ -324,8 +332,8 @@ sub govern_process {
         $name =~ s!.*/!!; $name =~ s/\W+/_/g;
         length($name) or $name = "prog";
     }
-    defined($name) or die "Please specify name\n";
-    $name =~ /\A\w+\z/ or die "Invalid name, please use letters/numbers only\n";
+    defined($name) or die "Please specify name";
+    $name =~ /\A\w+\z/ or die "Invalid name, please use letters/numbers only";
     $self->{name} = $name;
 
     if ($args{single_instance}) {
@@ -336,7 +344,7 @@ sub govern_process {
                     $args{on_multiple_instance} eq 'exit') {
                 $exitcode = 202; goto EXIT;
             } else {
-                warn "Program $name already running\n";
+                warn "Program $name already running";
                 $exitcode = 202; goto EXIT;
             }
         }
@@ -406,7 +414,7 @@ sub govern_process {
         $to = IPC::Run::timeout(1);
         #$self->{to} = $to;
         $h  = IPC::Run::start($cmd, \*STDIN, $out, $err, $to)
-            or die "Can't start program: $?\n";
+            or die "Can't start program: $?";
         $self->{h} = $h;
         IPC::Run::Patch::Setuid->unimport()
               if defined $args{euid} || defined $args{egid};
@@ -463,7 +471,7 @@ sub govern_process {
 
         if (defined $args{timeout}) {
             if ($now - $start_time >= $args{timeout}) {
-                $err->("Timeout ($args{timeout}s), killing child ...\n");
+                $err->("Timeout ($args{timeout}s), killing child ...");
                 $self->_kill;
                 # mark with a special exit code that it's a timeout
                 $exitcode = 124;
@@ -513,7 +521,7 @@ sub govern_process {
                 $noss_screensaver = Screensaver::Any::detect_screensaver();
                 if (!$noss_screensaver) {
                     warn "Can't detect any known screensaver, ".
-                        "will skip preventing screensaver from activating\n";
+                        "will skip preventing screensaver from activating";
                     $noss = 0;
                     last NOSS;
                 }
@@ -522,7 +530,7 @@ sub govern_process {
                 );
                 if ($res->[0] != 200) {
                     warn "Can't get screensaver timeout ($res->[0]: $res->[1])".
-                        ", will skip preventing screensaver from activating\n";
+                        ", will skip preventing screensaver from activating";
                     $noss = 0;
                     last NOSS;
                 }
@@ -533,7 +541,7 @@ sub govern_process {
             );
             if ($res->[0] != 200) {
                 warn "Can't prevent screensaver from activating ".
-                    "($res->[0]: $res->[1])\n";
+                    "($res->[0]: $res->[1])";
             }
             $noss_lastprevent_time = $now;
         }
