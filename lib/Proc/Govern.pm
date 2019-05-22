@@ -109,7 +109,7 @@ _
         },
         pid_dir => {
             summary => 'Directory to put PID file in',
-            schema => 'str*',
+            schema => 'dirname*',
         },
         on_multiple_instance => {
             schema => ['str*' => in => ['exit']],
@@ -131,7 +131,7 @@ too high and resumed if system load returns to a lower limit.
 _
         },
         load_check_every => {
-            schema => [duration => default => 10],
+            schema => [duration => {default => 10, 'x.perl.coerce_rules'=>['str_human']}],
             summary => 'Frequency of load checking',
             tags => ['category:load-control'],
         },
@@ -217,7 +217,7 @@ _
             tags => ['category:output-control'],
         },
         timeout => {
-            schema => ['int*'],
+            schema => ['duration*', 'x.perl.coerce_rules'=>['str_human']],
             summary => 'Apply execution time limit, in seconds',
             description => <<'_',
 
@@ -239,7 +239,7 @@ _
         },
         # not yet defined
         #restart_delay => {
-        #    schema => ['duration*', default=>0],
+        #    schema => ['duration*', default=>0, 'x.perl.coerce_rules'=>['str_human']],
         #    tags => ['category:restart'],
         #},
         #check_alive => {
