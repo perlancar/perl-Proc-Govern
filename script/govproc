@@ -18,8 +18,8 @@ my %opts = (
     log_stdout_size      => 10*1024*1024,
     log_stdout_histories => 10,
 );
-Getopt::Long::Configure("no_permute");
-GetOptions(
+Getopt::Long::Configure("gnu_getopt", "no_ignore_case");
+my $success = GetOptions(
     "help|h|?"               => \$opts{-help},
     "version|v"              => \$opts{-version},
 
@@ -45,7 +45,13 @@ GetOptions(
     "load-every=i"           => sub { $opts{load_watch} = 1; $opts{load_check_every} = $_[1] },
     "killfam"                => sub { $opts{killfam} = 1 },
     "no-screensaver"         => \$opts{no_screensaver},
+    "euid=i"                 => \$opts{euid},
+    "egid=s"                 => \$opts{egid},
 );
+unless ($success) {
+    warn "govproc: Errors in getting command-line options, aborting\n";
+    exit 99;
+}
 
 if ($opts{-version}) {
     say "govproc version ", ($Proc::Govern::VERSION // "?");
@@ -82,6 +88,9 @@ Options:
                               (default: 10).
   --killfam                 Use killfam instead of kill, to kill process family.
   --no-screensaver          Prevent screensaver from activating.
+  --euid=I                  Set EUID of child process.
+  --egid=S                  Set EGIDs of child process.
+
 _
     exit 0;
 }
@@ -95,6 +104,8 @@ my %ga = (
     timeout         => $opts{timeout},
     on_multiple_instance => $opts{on_multiple_instance},
     (no_screensaver  => $opts{no_screensaver}) x !!$opts{no_screensaver},
+    (euid            => $opts{euid}) x !!(defined $opts{euid}),
+    (egid            => $opts{egid}) x !!(defined $opts{euid}),
 );
 $ga{show_stderr} = $opts{show_stderr};
 if ($opts{log_stderr_dir}) {
@@ -135,7 +146,7 @@ exit Proc::Govern::govern_process(%ga);
 
 =head1 SYNOPSIS
 
- % govproc [opts] COMMAND ...
+ % govproc [options] <command>...
 
 See C<govproc --help> for list of options.
 
@@ -151,6 +162,11 @@ This script is a command-line interface for L<Proc::Govern>.
 
 If set to true, will display debugging output to STDERR, e.g. when
 stopping/starting a process.
+
+
+=head1 EXIT CODES
+
+99 on command-line options error.
 
 
 =head1 SEE ALSO
