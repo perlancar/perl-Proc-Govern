@@ -382,42 +382,77 @@ sub govern_process {
     ###
 
     my $out;
-    if ($args{log_stdout}) {
-        require File::Write::Rotate;
-        my %fwrargs = %{$args{log_stdout}};
-        $fwrargs{dir}    //= "/var/log";
-        $fwrargs{prefix}   = $name;
-        my $fwr = File::Write::Rotate->new(%fwrargs);
-        $out = sub {
-            print STDOUT $_[0]//'' if $showout;
-            # XXX prefix with timestamp, how long script starts,
-            $_[0] =~ s/^/STDOUT: /mg;
-            $fwr->write($_[0]);
-        };
-    } else {
-        $out = sub {
-            print STDOUT $_[0]//'' if $showout;
-        };
+  LOG_STDOUT: {
+        if ($args{log_stdout}) {
+            require File::Write::Rotate;
+            my %fwrargs = %{$args{log_stdout}};
+            $fwrargs{dir}    //= "/var/log";
+            $fwrargs{prefix}   = $name;
+            my $fwr = File::Write::Rotate->new(%fwrargs);
+            $out = sub {
+                print STDOUT $_[0]//'' if $showout;
+                # XXX prefix with timestamp, how long script starts,
+                $_[0] =~ s/^/STDOUT: /mg;
+                $fwr->write($_[0]);
+            };
+        } else {
+            $out = sub {
+                print STDOUT $_[0]//'' if $showout;
+            };
+        }
     }
 
     my $err;
-    if ($args{log_stderr}) {
-        require File::Write::Rotate;
-        my %fwrargs = %{$args{log_stderr}};
-        $fwrargs{dir}    //= "/var/log";
-        $fwrargs{prefix}   = $name;
-        my $fwr = File::Write::Rotate->new(%fwrargs);
-        $err = sub {
-            print STDERR $_[0]//'' if $showerr;
-            # XXX prefix with timestamp, how long script starts,
-            $_[0] =~ s/^/STDERR: /mg;
-            $fwr->write($_[0]);
-        };
-    } else {
-        $err = sub {
-            print STDERR $_[0]//'' if $showerr;
-        };
+  LOG_STDERR: {
+        if ($args{log_stderr}) {
+            require File::Write::Rotate;
+            my %fwrargs = %{$args{log_stderr}};
+            $fwrargs{dir}    //= "/var/log";
+            $fwrargs{prefix}   = $name;
+            my $fwr = File::Write::Rotate->new(%fwrargs);
+            $err = sub {
+                print STDERR $_[0]//'' if $showerr;
+                # XXX prefix with timestamp, how long script starts,
+                $_[0] =~ s/^/STDERR: /mg;
+                $fwr->write($_[0]);
+            };
+        } else {
+            $err = sub {
+                print STDERR $_[0]//'' if $showerr;
+            };
+        }
     }
+
+    my $prevented_sleep;
+  PREVENT_SLEEP: {
+        last unless $nosleep;
+        my $res = PowerManagement::Any::sleep_is_prevented();
+        unless ($res->[0] == 200) {
+            log_warn "Cannot check if sleep is being prevented (%s), ".
+                "will not be preventing sleep", $res;
+            last;
+        }
+        if ($res->[2]) {
+            log_info "Sleep is already being prevented";
+            last;
+        }
+        $res = PowerManagement::Any::prevent_sleep();
+        unless ($res->[0] == 200 || $res->[0] == 304) {
+            log_warn "Cannot prevent sleep (%s), will be running anyway", $res;
+            last;
+        }
+        log_info "Prevented sleep (%s)", $res;
+        $prevented_sleep++;
+    }
+
+    my $do_unprevent_sleep = sub {
+        return unless $prevented_sleep;
+        my $res = PowerManagement::Any::unprevent_sleep();
+        unless ($res->[0] == 200 || $res->[0] == 304) {
+            log_warn "Cannot unprevent sleep (%s)", $res;
+        }
+        $prevented_sleep = 0;
+    };
 
     my $start_time; # for timeout
     my ($to, $h);
@@ -444,12 +479,14 @@ sub govern_process {
     local $SIG{INT} = sub {
         log_debug "[govproc] Received INT signal";
         $self->_kill;
+        $do_unprevent_sleep->();
         exit 1;
     };
 
     local $SIG{TERM} = sub {
         log_debug "[govproc] Received TERM signal";
         $self->_kill;
+        $do_unprevent_sleep->();
         exit 1;
     };
 
@@ -466,28 +503,6 @@ sub govern_process {
 
     my $lastlw_time;
     my ($noss_screensaver, $noss_timeout, $noss_lastprevent_time);
-
-    my $prevented_sleep;
-  PREVENT_SLEEP: {
-        last unless $nosleep;
-        my $res = PowerManagement::Any::sleep_is_prevented();
-        unless ($res->[0] == 200) {
-            log_warn "Cannot check if sleep is being prevented (%s), ".
-                "will not be preventing sleep", $res;
-            last;
-        }
-        if ($res->[2]) {
-            log_info "Sleep is already being prevented";
-            last;
-        }
-        $res = PowerManagement::Any::prevent_sleep();
-        unless ($res->[0] == 200 || $res->[0] == 304) {
-            log_warn "Cannot prevent sleep (%s), will be running anyway", $res;
-            last;
-        }
-        log_info "Prevented sleep (%s)", $res;
-        $prevented_sleep++;
-    }
 
   MAIN_LOOP:
     while (1) {
@@ -589,13 +604,7 @@ sub govern_process {
 
     } # MAINLOOP
 
-  UNPREVENT_SLEEP: {
-        last unless $prevented_sleep;
-        my $res = PowerManagement::Any::unprevent_sleep();
-        unless ($res->[0] == 200 || $res->[0] == 304) {
-            log_warn "Cannot unprevent sleep (%s)", $res;
-        }
-    }
+    $do_unprevent_sleep->();
 
   EXIT:
     return $exitcode || 0;
