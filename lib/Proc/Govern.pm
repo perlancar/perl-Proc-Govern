@@ -262,6 +262,11 @@ _
             schema => ['true*'],
             tags => ['category:screensaver'],
         },
+        no_sleep => {
+            summary => 'Prevent system from sleeping',
+            schema => ['true*'],
+            tags => ['category:power-management'],
+        },
         euid => {
             summary => 'Set EUID of command process',
             schema => 'unix::local_uid*',
@@ -331,6 +336,7 @@ sub govern_process {
 
     require Proc::Killfam if $args{killfam};
     require Screensaver::Any if $args{no_screensaver};
+    require PowerManagement::Any if $args{no_sleep};
 
     my $exitcode;
 
@@ -370,7 +376,8 @@ sub govern_process {
     my $lwhigh = $args{load_high_limit}  // 1.25;
     my $lwlow  = $args{load_low_limit}   // 0.25;
 
-    my $noss   = $args{no_screensaver};
+    my $noss    = $args{no_screensaver};
+    my $nosleep = $args{no_sleep};
 
     ###
 
@@ -459,6 +466,28 @@ sub govern_process {
 
     my $lastlw_time;
     my ($noss_screensaver, $noss_timeout, $noss_lastprevent_time);
+
+    my $prevented_sleep;
+  PREVENT_SLEEP: {
+        last unless $nosleep;
+        my $res = PowerManagement::Any::sleep_is_prevented();
+        unless ($res->[0] == 200) {
+            log_warn "Cannot check if sleep is being prevented (%s), ".
+                "will not be preventing sleep", $res;
+            last;
+        }
+        if ($res->[2]) {
+            log_info "Sleep is already being prevented";
+            last;
+        }
+        $res = PowerManagement::Any::prevent_sleep();
+        unless ($res->[0] == 200 || $res->[0] == 304) {
+            log_warn "Cannot prevent sleep (%s), will be running anyway", $res;
+            last;
+        }
+        log_info "Prevented sleep (%s)", $res;
+        $prevented_sleep++;
+    }
 
   MAIN_LOOP:
     while (1) {
@@ -560,6 +589,14 @@ sub govern_process {
 
     } # MAINLOOP
 
+  UNPREVENT_SLEEP: {
+        last unless $prevented_sleep;
+        my $res = PowerManagement::Any::unprevent_sleep();
+        unless ($res->[0] == 200 || $res->[0] == 304) {
+            log_warn "Cannot unprevent sleep (%s)", $res;
+        }
+    }
+
   EXIT:
     return $exitcode || 0;
 }
@@ -622,6 +659,10 @@ To use as Perl module:
      # screensaver control options
      no_screensaver => 1,       # optional. if set to 1, will prevent screensaver from being activated while command
                                 #           is running.
+
+     # power management options
+     no_sleep => 1,             # optional. if set to 1, will prevent system from sleeping while command is running.
+                                #           this includes hybrid sleep, suspend, and hibernate.
 
      # setuid options
      euid => 1000,              # optional. sets euid of command process. note: need to be root to be able to setuid.
