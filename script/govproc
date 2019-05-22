@@ -45,7 +45,7 @@ my $success = GetOptions(
     "load-every=i"           => sub { $opts{load_watch} = 1; $opts{load_check_every} = $_[1] },
     "killfam"                => sub { $opts{killfam} = 1 },
     "no-screensaver"         => \$opts{no_screensaver},
-    "euid=i"                 => \$opts{euid},
+    "euid=s"                 => \$opts{euid},
     "egid=s"                 => \$opts{egid},
 );
 unless ($success) {

@@ -261,7 +261,7 @@ _
         },
         euid => {
             summary => 'Set EUID of command process',
-            schema => 'uint*',
+            schema => 'unix::uid*',
             description => <<'_',
 
 Need to be root to be able to setuid.
@@ -307,11 +307,23 @@ sub govern_process {
     my %args = @_;
     $self->{args} = \%args;
     if (defined $args{euid}) {
-        $args{euid} =~ /\A[0-9]+\z/ or die "euid has to be integer";
+        # coerce from username
+        unless ($args{euid} =~ /\A[0-9]+\z/) {
+            my @pw = getpwnam $args{euid};
+            $args{euid} = $pw[2] if @pw;
+        }
+        $args{euid} =~ /\A[0-9]+\z/
+            or die "euid ('$args{euid}') has to be integer";
     }
     if (defined $args{egid}) {
+        # coerce from groupname
+        unless ($args{egid} =~ /\A[0-9]+( [0-9]+)*\z/) {
+            my @gr = getgrnam $args{egid};
+            $args{egid} = $gr[2] if @gr;
+        }
         $args{egid} =~ /\A[0-9]+( [0-9]+)*\z/
-            or die "egid has to be integer or integers separated by space";
+            or die "egid ('$args{egid}') has to be integer or ".
+            "integers separated by space";
     }
 
     require Proc::Killfam if $args{killfam};
