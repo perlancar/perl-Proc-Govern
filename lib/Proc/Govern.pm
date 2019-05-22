@@ -6,6 +6,7 @@ package Proc::Govern;
 use 5.010001;
 use strict;
 use warnings;
+use Log::ger;
 
 use Exporter qw(import);
 our @EXPORT_OK = qw(govern_process);
@@ -24,7 +25,7 @@ sub new {
 sub _suspend {
     my $self = shift;
     my $h = $self->{h};
-    say "D:Suspending program ..." if $self->{debug};
+    log_debug "[govproc] Suspending child ...";
     if (@{ $h->{KIDS} }) {
         my @args = (STOP => (map { $_->{PID} } @{ $h->{KIDS} }));
         if ($self->{args}{killfam}) {
@@ -41,7 +42,7 @@ sub _suspend {
 sub _resume {
     my $self = shift;
     my $h = $self->{h};
-    say "D:Resuming program ..." if $self->{debug};
+    log_debug "[govproc] Resuming child ...";
     if (@{ $h->{KIDS} }) {
         my @args = (CONT => (map { $_->{PID} } @{ $h->{KIDS} }));
         if ($self->{args}{killfam}) {
@@ -59,7 +60,7 @@ sub _kill {
     my $self = shift;
     my $h = $self->{h};
     $self->_resume if $self->{suspended};
-    say "D:Killing program ..." if $self->{debug};
+    log_debug "[govproc] Killing child ...";
     $self->{restart} = 0;
     $h->kill_kill;
 }
@@ -90,6 +91,8 @@ _
         command => {
             schema => ['array*' => of => 'str*'],
             req => 1,
+            pos => 0,
+            slurpy => 1,
             summary => 'Command to run',
             description => <<'_',
 
@@ -240,7 +243,7 @@ _
             tags => ['category:timeout'],
         },
         restart => {
-            schema => [bool => default => 1],
+            schema => ['bool'],
             summary => 'If set to true, do restart',
             tags => ['category:restart'],
         },
@@ -256,12 +259,12 @@ _
         #},
         no_screensaver => {
             summary => 'Prevent screensaver from being activated',
-            schema => ['bool*', is=>1],
+            schema => ['true*'],
             tags => ['category:screensaver'],
         },
         euid => {
             summary => 'Set EUID of command process',
-            schema => 'unix::uid*',
+            schema => 'unix::local_uid*',
             description => <<'_',
 
 Need to be root to be able to setuid.
@@ -328,9 +331,6 @@ sub govern_process {
 
     require Proc::Killfam if $args{killfam};
     require Screensaver::Any if $args{no_screensaver};
-
-    my $debug = $ENV{DEBUG};
-    $self->{debug} = $debug;
 
     my $exitcode;
 
@@ -422,7 +422,7 @@ sub govern_process {
             -euid => $args{euid},
             -egid => $args{egid},
         ) if defined $args{euid} || defined $args{egid};
-        say "D:(Re)starting program $name ..." if $debug;
+        log_debug "[govproc] (Re)starting program $name ...";
         $to = IPC::Run::timeout(1);
         #$self->{to} = $to;
         $h  = IPC::Run::start($cmd, \*STDIN, $out, $err, $to)
@@ -435,13 +435,13 @@ sub govern_process {
     $do_start->();
 
     local $SIG{INT} = sub {
-        say "D:Received INT signal" if $debug;
+        log_debug "[govproc] Received INT signal";
         $self->_kill;
         exit 1;
     };
 
     local $SIG{TERM} = sub {
-        say "D:Received TERM signal" if $debug;
+        log_debug "[govproc] Received TERM signal";
         $self->_kill;
         exit 1;
     };
@@ -451,7 +451,7 @@ sub govern_process {
     $chld_handler = sub {
         $SIG{CHLD} = $chld_handler;
         if ($self->{restart}) {
-            say "D:Child died" if $debug;
+            log_debug "[govproc] Child died";
             $do_start->();
         }
     };
@@ -462,7 +462,7 @@ sub govern_process {
 
   MAIN_LOOP:
     while (1) {
-        #say "D:main loop" if $debug;
+        #log_debug "[govproc] main loop";
         if (!$self->{suspended}) {
             # re-set timer, it might be reset by suspend/resume?
             $to->start(1);
@@ -483,7 +483,7 @@ sub govern_process {
 
         if (defined $args{timeout}) {
             if ($now - $start_time >= $args{timeout}) {
-                $err->("Timeout ($args{timeout}s), killing child ...");
+                $err->("Timeout ($args{timeout}s), killing child ...\n");
                 $self->_kill;
                 # mark with a special exit code that it's a timeout
                 $exitcode = 124;
@@ -492,7 +492,7 @@ sub govern_process {
         }
 
         if ($lw && (!$lastlw_time || $lastlw_time <= ($now-$lwfreq))) {
-            say "D:Checking load" if $debug;
+            log_debug "[govproc] Checking load";
             if (!$self->{suspended}) {
                 my $is_high;
                 if (ref($lwhigh) eq 'CODE') {
@@ -503,7 +503,7 @@ sub govern_process {
                     $is_high = $load[0] >= $lwhigh;
                 }
                 if ($is_high) {
-                    say "D:Load is too high" if $debug;
+                    log_debug "[govproc] Load is too high";
                     $self->_suspend;
                 }
             } else {
@@ -516,7 +516,7 @@ sub govern_process {
                     $is_low = $load[0] <= $lwlow;
                 }
                 if ($is_low) {
-                    say "D:Load is low" if $debug;
+                    log_debug "[govproc] Load is low";
                     $self->_resume;
                 }
             }
@@ -528,7 +528,7 @@ sub govern_process {
             last unless $noss;
             last unless !$noss_lastprevent_time ||
                 $noss_lastprevent_time <= ($now-$noss_timeout+5);
-            say "D:Preventing screensaver from activating" if $debug;
+            log_debug "[govproc] Preventing screensaver from activating ...";
             if (!$noss_lastprevent_time) {
                 $noss_screensaver = Screensaver::Any::detect_screensaver();
                 if (!$noss_screensaver) {
@@ -719,11 +719,6 @@ Another instance is already running (when C<single_instance> option is true).
 
 
 =head1 ENVIRONMENT
-
-=head2 DEBUG => bool
-
-If set to true, will display debugging output to STDERR, e.g. when
-stopping/starting a process.
 
 
 =head1 FAQ
