@@ -100,6 +100,10 @@ Passed to <pm:IPC::Run>'s `start()`.
 
 _
         },
+        nice => {
+            summary => 'Set nice/priority level',
+            schema => ['int*'],
+        },
         single_instance => {
             schema => [bool => default => 0],
             description => <<'_',
@@ -464,12 +468,20 @@ sub govern_process {
             -euid => $args{euid},
             -egid => $args{egid},
         ) if defined $args{euid} || defined $args{egid};
+
         log_debug "[govproc] (Re)starting program $name ...";
         $to = IPC::Run::timeout(1);
         #$self->{to} = $to;
         $h  = IPC::Run::start($cmd, \*STDIN, $out, $err, $to)
             or die "Can't start program: $?";
         $self->{h} = $h;
+
+        if (defined $args{nice}) {
+            log_debug "[govproc] Setting nice level of PID %d to %d ...",
+                $h->{KIDS}[0]{PID}, $args{nice};
+            setpriority(0, $h->{KIDS}[0]{PID}, $args{nice});
+        }
+
         IPC::Run::Patch::Setuid->unimport()
               if defined $args{euid} || defined $args{egid};
     };
@@ -710,11 +722,17 @@ Currently the following governing functionalities are available:
 
 =item * execution time limit
 
+=item * set (CPU) nice level (priority)
+
 =item * preventing multiple instances from running simultaneously
 
 =item * load watch
 
 =item * autorestart
+
+=item * preventing system from sleeping while process is running
+
+=item * preventing screensaver from activating while process is running
 
 =back
 
@@ -731,8 +749,6 @@ With an option to autorestart if process' memory size grow out of limit.
 =item * other resource usage limit
 
 =item * fork/start multiple processes
-
-=item * set (CPU) nice level
 
 =item * set I/O nice level (scheduling priority/class)
 
