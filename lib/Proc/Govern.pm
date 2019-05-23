@@ -815,13 +815,22 @@ Not yet tested on Win32.
 
 =head1 SEE ALSO
 
-Proc::Govern uses L<IPC::Run> at its core.
+L<Forks::Super> (since 2009) extends the fork(), wait(), and waitpid() functions
+with some process/job management features, e.g. set timeout, retries, chdir,
+environment, umask, delay before start, control STDIN/STDOUT/STDERR, load
+control, priority/nice level, daemon, and a lot more. Had I known about this
+module, I probably wouldn't start Proc::Govern.
 
-L<IPC::Cmd> also uses IPC::Run (as well as L<IPC::Open3> on systems that do not
-have IPC::Run installed or on some archaic systems that do not support IPC::Run)
-and its C<run_forked()> routine also has some of Proc::Govern's functionalities
-like capturing stdout and stderr, timeout, hiding (discarding) output. If you
-only need those functionalities, you can use IPC::Cmd as it is a core module.
+Proc::Govern uses L<IPC::Run> at its core; you might want to use it directly. It
+already has some features, e.g. controlling STDIN/STDOUT/STDERR and timeout. But
+the main selling point of IPC::Run is its redirection and piping features.
+
+L<IPC::Cmd> is a core module, but can also use IPC::Run (as well as
+L<IPC::Open3> on systems that do not have IPC::Run installed or on some archaic
+systems that do not support IPC::Run). Its C<run_forked()> routine has some of
+Proc::Govern's functionalities like capturing stdout and stderr, timeout, hiding
+(discarding) output. If you only need those functionalities, you can use
+IPC::Cmd as it is a core module.
 
 Proc::Govern attempts (or will attempt, some day) to provide the functionality
 (or some of the functionality) of the builtins/modules/programs listed below:
