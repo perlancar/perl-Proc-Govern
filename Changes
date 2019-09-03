@@ -1,3 +1,9 @@
+0.208   2019-09-03  Released-By: PERLANCAR; Urgency: medium
+
+	- When no_screensaver=1, give lead time of 10 seconds instead of 5
+	  to be surer screensaver is not activating.
+
+
 0.207   2019-05-23  Released-By: PERLANCAR
 
 	- No functional changes.
