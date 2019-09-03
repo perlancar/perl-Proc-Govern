@@ -583,7 +583,7 @@ sub govern_process {
         {
             last unless $noss;
             last unless !$noss_lastprevent_time ||
-                $noss_lastprevent_time <= ($now-$noss_timeout+5);
+                $noss_lastprevent_time <= ($now-$noss_timeout+10);
             log_debug "[govproc] Preventing screensaver from activating ...";
             if (!$noss_lastprevent_time) {
                 $noss_screensaver = Screensaver::Any::detect_screensaver();
