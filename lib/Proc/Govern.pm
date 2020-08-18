@@ -63,7 +63,11 @@ sub _kill {
     my $h = $self->{h};
     $self->_resume if $self->{suspended};
     log_debug "[govproc] Killing child ...";
-    $self->{restart} = 0;
+
+    # we turn this off because restarting is done by the child signal handle.
+    # restart_if_failed will be set (again) by do_start().
+    $self->{restart_if_failed} = 0;
+
     $h->kill_kill;
 }
 
@@ -248,9 +252,15 @@ Upon timeout, exit code is set to 124.
 _
             tags => ['category:timeout'],
         },
-        restart => {
+        restart_if_failed => {
             schema => ['bool'],
             summary => 'If set to true, do restart',
+            tags => ['category:restart'],
+        },
+        restart_if_no_output_after => {
+            schema => ['uint*'],
+            summary => 'If set to positive number, restart when there is no '.
+                'output after this many seconds',
             tags => ['category:restart'],
         },
         # not yet defined
@@ -388,6 +398,7 @@ sub govern_process {
     ###
 
     my $out;
+    my $last_out_time = time(); # for restarting after no output for some time
   LOG_STDOUT: {
         if ($args{log_stdout}) {
             require File::Write::Rotate;
@@ -396,6 +407,7 @@ sub govern_process {
             $fwrargs{prefix}   = $name;
             my $fwr = File::Write::Rotate->new(%fwrargs);
             $out = sub {
+                $last_out_time = time();
                 print STDOUT $_[0]//'' if $showout;
                 # XXX prefix with timestamp, how long script starts,
                 $_[0] =~ s/^/STDOUT: /mg;
@@ -403,6 +415,7 @@ sub govern_process {
             };
         } else {
             $out = sub {
+                $last_out_time = time();
                 print STDOUT $_[0]//'' if $showout;
             };
         }
@@ -505,15 +518,15 @@ sub govern_process {
     };
 
     my $chld_handler;
-    $self->{restart} = $args{restart};
+    $self->{restart_if_failed} = $args{restart_if_failed};
     $chld_handler = sub {
         $SIG{CHLD} = $chld_handler;
-        if ($self->{restart}) {
+        if ($self->{restart_if_failed}) {
             log_debug "[govproc] Child died";
             $do_start->();
         }
     };
-    local $SIG{CHLD} = $chld_handler if $args{restart};
+    local $SIG{CHLD} = $chld_handler if $args{restart_if_failed};
 
     my $lastlw_time;
     my ($noss_screensaver, $noss_timeout, $noss_lastprevent_time);
@@ -539,6 +552,7 @@ sub govern_process {
         }
         my $now = time();
 
+      TIMEOUT:
         if (defined $args{timeout}) {
             if ($now - $start_time >= $args{timeout}) {
                 $err->("Timeout ($args{timeout}s), killing child ...\n");
@@ -549,6 +563,15 @@ sub govern_process {
             }
         }
 
+      RESTART_IF_NO_OUTPUT_AFTER: {
+            last unless $args{restart_if_no_output_after};
+            last unless $now - $last_out_time >= $args{restart_if_no_output_after};
+            $err->("No output after $args{restart_if_no_output_after}s, restarting ...\n");
+            $self->_kill;
+            $do_start->();
+        }
+
+      LOAD_CONTROL:
         if ($lw && (!$lastlw_time || $lastlw_time <= ($now-$lwfreq))) {
             log_debug "[govproc] Checking load";
             if (!$self->{suspended}) {
@@ -677,7 +700,9 @@ To use as Perl module:
      load_check_every => 20,    # optional, default 10. frequency of load checking (in seconds).
 
      # restart options
-     restart => 1,              # optional. if set to 1, will restart command if exit code is not zero.
+     restart_if_failed => 1,              # optional. if set to 1, will restart command if exit code is not zero.
+     restart_if_no_output_after => 60,    # optional. if set to a positive number, will restart command after no
+                                          #           stdout output after this many seconds
 
      # screensaver control options
      no_screensaver => 1,       # optional. if set to 1, will prevent screensaver from being activated while command
