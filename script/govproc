@@ -1,6 +1,8 @@
 #!perl
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 use 5.010;
@@ -9,6 +11,8 @@ use warnings;
 
 use Getopt::Long;
 use Proc::Govern;
+
+$|++;
 
 my @SAVE_ARGV = @ARGV;
 
@@ -26,7 +30,8 @@ my $success = GetOptions(
     "name|n=s"               => \$opts{name},
     "nice=i"                 => \$opts{nice},
     "single-instance"        => \$opts{single_instance},
-    "restart"                => \$opts{restart},
+    "restart-if-failed"      => \$opts{restart_if_failed},
+    "restart-if-no-output-after=i" => \$opts{restart_if_no_output_after},
     "show-stderr!"           => \$opts{show_stderr},
     "log-stderr-dir=s"       => \$opts{log_stderr_dir},
     "log-stderr-size=i"      => \$opts{log_stderr_size},
@@ -67,7 +72,10 @@ Options:
   --name=S                  Set process name.
   --nice=I                  Set nice level/priority.
   --single-instance         Prevent running multiple instances simultaneously.
-  --restart                 Restart when child process dies/exits.
+  --restart-if-failed       Restart when child process dies/exits.
+  --restart-if-no-output-after=N
+                            Restart if there is no output after this many
+                              seconds.
   --no-show-stderr          Hide stderr output (but you can still log it).
   --log-stderr-dir=S        Enable logging of stderr and set log directory.
   --log-stderr-size=N       Set log file size limit, in bytes, default 10MB.
