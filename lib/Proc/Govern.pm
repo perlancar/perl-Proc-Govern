@@ -193,6 +193,20 @@ _
         },
         log_stdout => {
             summary => 'Will be passed as arguments to `File::Write::Rotate`',
+            description => <<'_',
+
+Specify logging for STDOUT. Logging will be done using <pm:File::Write::Rotate>.
+Known hash keys: `dir` (STR, defaults to `/var/log`, directory, preferably
+absolute, where the log file(s) will reside, should already exist and be
+writable, will be passed to <pm:File::Write::Rotate>'s constructor), `size`
+(int, also passed to <pm:File::Write::Rotate>'s constructor), `histories` (int,
+also passed to <pm:File::Write::Rotate>'s constructor), `period` (str, also
+passed to <pm:File::Write::Rotate>'s constructor).
+
+Instead of this option, you can also use `log_combined` to log both stdout and
+stderr to the same directory.
+
+_
             schema => ['hash*' => keys => {
                 dir       => 'str*',
                 size      => 'str*',
@@ -217,6 +231,9 @@ writable, will be passed to <pm:File::Write::Rotate>'s constructor), `size`
 also passed to <pm:File::Write::Rotate>'s constructor), `period` (str, also
 passed to <pm:File::Write::Rotate>'s constructor).
 
+Instead of this option, you can also use `log_combined` to log both stdout and
+stderr to the same directory.
+
 _
             schema => ['hash*' => keys => {
                 dir       => 'str*',
@@ -235,6 +252,30 @@ Can be used to turn off STDERR output. If you turn this off and set
 
 _
             tags => ['category:output-control'],
+        },
+        log_combined => {
+            summary => 'Will be passed as arguments to `File::Write::Rotate`',
+            description => <<'_',
+
+Specify logging for STDOUT and STDERR. Logging will be done using
+<pm:File::Write::Rotate>. Known hash keys: `dir` (STR, defaults to `/var/log`,
+directory, preferably absolute, where the log file(s) will reside, should
+already exist and be writable, will be passed to <pm:File::Write::Rotate>'s
+constructor), `size` (int, also passed to <pm:File::Write::Rotate>'s
+constructor), `histories` (int, also passed to <pm:File::Write::Rotate>'s
+constructor), `period` (str, also passed to <pm:File::Write::Rotate>'s
+constructor).
+
+Instead of this option, you can also use `log_stdout` and `log_stderr`
+separately to log stdout and stderr to different directory.
+
+_
+            schema => ['hash*' => keys => {
+                dir       => 'str*',
+                size      => 'str*',
+                histories => 'int*',
+            }],
+            tags => ['category:logging'],
         },
         timeout => {
             schema => ['duration*', 'x.perl.coerce_rules'=>['From_str::human']],
@@ -310,7 +351,11 @@ _
             [load_low_limit   => ['load_watch']], # XXX should only be allowed when load_watch is true
             [load_high_limit  => ['load_watch']], # XXX should only be allowed when load_watch is true
             [load_check_every => ['load_watch']], # XXX should only be allowed when load_watch is true
-         ],
+        ],
+        'choose_once&' => {
+            ['log_stdout', 'log_combined'],
+            ['log_stderr', 'log_combined'],
+        },
 
     },
     result_naked => 1,
@@ -400,47 +445,67 @@ sub govern_process {
     my $out;
     my $last_out_time = time(); # for restarting after no output for some time
   LOG_STDOUT: {
-        if ($args{log_stdout}) {
-            require File::Write::Rotate;
-            my %fwrargs = %{$args{log_stdout}};
-            $fwrargs{dir}    //= "/var/log";
-            $fwrargs{prefix}   = $name;
-            my $fwr = File::Write::Rotate->new(%fwrargs);
-            $out = sub {
-                $last_out_time = time();
-                print STDOUT $_[0]//'' if $showout;
-                # XXX prefix with timestamp, how long script starts,
-                $_[0] =~ s/^/STDOUT: /mg;
-                $fwr->write($_[0]);
-            };
-        } else {
-            $out = sub {
-                $last_out_time = time();
-                print STDOUT $_[0]//'' if $showout;
-            };
-        }
+        last unless $args{log_stdout};
+
+        require File::Write::Rotate;
+        my %fwrargs = %{$args{log_stdout}};
+        $fwrargs{dir}    //= "/var/log";
+        $fwrargs{prefix}   = $name;
+        my $fwr = File::Write::Rotate->new(%fwrargs);
+        $out = sub {
+            $last_out_time = time();
+            print STDOUT $_[0]//'' if $showout;
+            # XXX prefix with timestamp, how long script starts,
+            $_[0] =~ s/^/STDOUT: /mg;
+            $fwr->write($_[0]);
+        };
     }
 
     my $err;
   LOG_STDERR: {
-        if ($args{log_stderr}) {
-            require File::Write::Rotate;
-            my %fwrargs = %{$args{log_stderr}};
-            $fwrargs{dir}    //= "/var/log";
-            $fwrargs{prefix}   = $name;
-            my $fwr = File::Write::Rotate->new(%fwrargs);
-            $err = sub {
-                print STDERR $_[0]//'' if $showerr;
-                # XXX prefix with timestamp, how long script starts,
-                $_[0] =~ s/^/STDERR: /mg;
-                $fwr->write($_[0]);
-            };
-        } else {
-            $err = sub {
-                print STDERR $_[0]//'' if $showerr;
-            };
-        }
+        last unless $args{log_stderr};
+
+        require File::Write::Rotate;
+        my %fwrargs = %{$args{log_stderr}};
+        $fwrargs{dir}    //= "/var/log";
+        $fwrargs{prefix}   = $name;
+        my $fwr = File::Write::Rotate->new(%fwrargs);
+        $err = sub {
+            print STDERR $_[0]//'' if $showerr;
+            # XXX prefix with timestamp, how long script starts,
+            $_[0] =~ s/^/STDERR: /mg;
+            $fwr->write($_[0]);
+        };
     }
+
+  LOG_COMBINED: {
+        last unless $args{log_combined};
+
+        require File::Write::Rotate;
+        my %fwrargs = %{$args{log_combined}};
+        $fwrargs{dir}    //= "/var/log";
+        $fwrargs{prefix}   = $name;
+        my $fwr = File::Write::Rotate->new(%fwrargs);
+        $out = sub {
+            print $_[0]//'' if $showout;
+            # XXX prefix with timestamp, how long script starts,
+            $_[0] =~ s/^/STDOUT: /mg;
+            $fwr->write($_[0]);
+        };
+        $err = sub {
+            print STDERR $_[0]//'' if $showerr;
+            # XXX prefix with timestamp, how long script starts,
+            $_[0] =~ s/^/STDERR: /mg;
+            $fwr->write($_[0]);
+        };
+    }
+
+    $out //= sub {
+        print STDERR $_[0]//'' if $showerr;
+    };
+    $err //= sub {
+        print STDERR $_[0]//'' if $showerr;
+    };
 
     my $prevented_sleep;
   PREVENT_SLEEP: {
@@ -684,6 +749,11 @@ To use as Perl module:
          size      => '16M',
          histories => 12,
      },
+     log_combined => {                        # optional, passed to File::Write::Rotate
+         dir       => '/var/log/myapp',
+         size      => '16M',
+         histories => 12,
+     },
      show_stdout => 0,                        # optional. can be set to 0 to suppress stdout output. note:
                                               #           stdout can still be logged even if not shown.
      show_stderr => 0,                        # optional. can be set to 0 to suppress stderr output. note:
@@ -745,7 +815,7 @@ Currently the following governing functionalities are available:
 
 =over
 
-=item * logging of STDOUT & STDERR output to an autorotated file
+=item * logging of STDOUT & STDERR (or both) output to an autorotated file
 
 =item * execution time limit
 

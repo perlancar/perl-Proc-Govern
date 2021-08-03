@@ -42,6 +42,10 @@ my $success = GetOptions(
     "log-stdout-size=i"      => \$opts{log_stdout_size},
     "log-stdout-histories=i" => \$opts{log_stdout_histories},
     "log-stdout-period=s"    => \$opts{log_stdout_period},
+    "log-combined-dir=s"       => \$opts{log_combined_dir},
+    "log-combined-size=i"      => \$opts{log_combined_size},
+    "log-combined-histories=i" => \$opts{log_combined_histories},
+    "log-combined-period=s"    => \$opts{log_combined_period},
     "timeout=i"              => \$opts{timeout},
     "pid-dir=s"              => \$opts{pid_dir},
     "on-multiple-instance=s" => \$opts{on_multiple_instance},
@@ -86,6 +90,10 @@ Options:
   --log-stdout-size=N       Set log file size limit, in bytes, default 10MB.
   --log-stdout-histories=N  Set number of rotated log files to keep, default 10.
   --log-stdout-period=S     Enable periodic rotation (daily/monthly/yearly).
+  --log-combined-dir=S      Enable logging of both stdout/err and set log directory.
+  --log-combined-size=N     Set log file size limit, in bytes, default 10MB.
+  --log-combined-histories=N  Set number of rotated log files to keep, default 10.
+  --log-combined-period=S   Enable periodic rotation (daily/monthly/yearly).
   --timeout=N               Set execution time limit, in seconds.
   --pid-dir=S               Directory to put PID file, if --single-instance set.
   --on-multiple-instance=S  Can be set to 'exit' to silently exit when another
@@ -134,6 +142,14 @@ if ($opts{log_stdout_dir}) {
         size      => $opts{log_stdout_size},
         histories => $opts{log_stdout_histories},
         period    => $opts{log_stdout_period},
+    };
+}
+if ($opts{log_combined_dir}) {
+    $ga{log_combined} = {
+        dir       => $opts{log_combined_dir},
+        size      => $opts{log_combined_size},
+        histories => $opts{log_combined_histories},
+        period    => $opts{log_combined_period},
     };
 }
 if ($opts{load_watch}) {
