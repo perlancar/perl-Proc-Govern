@@ -382,7 +382,7 @@ sub govern_process {
             $args{euid} = $pw[2] if @pw;
         }
         $args{euid} =~ /\A[0-9]+\z/
-            or die "euid ('$args{euid}') has to be integer";
+            or die "govproc: euid ('$args{euid}') has to be integer";
     }
     if (defined $args{egid}) {
         # coerce from groupname
@@ -391,7 +391,7 @@ sub govern_process {
             $args{egid} = $gr[2] if @gr;
         }
         $args{egid} =~ /\A[0-9]+( [0-9]+)*\z/
-            or die "egid ('$args{egid}') has to be integer or ".
+            or die "govproc: egid ('$args{egid}') has to be integer or ".
             "integers separated by space";
     }
 
@@ -402,8 +402,8 @@ sub govern_process {
     my $exitcode;
 
     my $cmd = $args{command};
-    defined($cmd) or die "Please specify command";
-    ref($cmd) eq 'ARRAY' or die "Command must be arrayref of strings";
+    defined($cmd) or die "govproc: Please specify command";
+    ref($cmd) eq 'ARRAY' or die "govproc: Command must be arrayref of strings";
 
     my $name = $args{name};
     if (!defined($name)) {
@@ -411,8 +411,8 @@ sub govern_process {
         $name =~ s!.*/!!; $name =~ s/\W+/_/g;
         length($name) or $name = "prog";
     }
-    defined($name) or die "Please specify name";
-    $name =~ /\A\w+\z/ or die "Invalid name, please use letters/numbers only";
+    defined($name) or die "govproc: Please specify name";
+    $name =~ /\A\w+\z/ or die "govproc: Invalid name, please use letters/numbers only";
     $self->{name} = $name;
 
     if ($args{single_instance}) {
@@ -423,7 +423,7 @@ sub govern_process {
                     $args{on_multiple_instance} eq 'exit') {
                 $exitcode = 202; goto EXIT;
             } else {
-                warn "Program $name already running";
+                warn "govproc: Program $name already running";
                 $exitcode = 202; goto EXIT;
             }
         }
@@ -512,20 +512,20 @@ sub govern_process {
         last unless $nosleep;
         my $res = PowerManagement::Any::sleep_is_prevented();
         unless ($res->[0] == 200) {
-            log_warn "Cannot check if sleep is being prevented (%s), ".
+            log_warn "[govproc] Cannot check if sleep is being prevented (%s), ".
                 "will not be preventing sleep", $res;
             last;
         }
         if ($res->[2]) {
-            log_info "Sleep is already being prevented";
+            log_info "[govproc] Sleep is already being prevented";
             last;
         }
         $res = PowerManagement::Any::prevent_sleep();
         unless ($res->[0] == 200 || $res->[0] == 304) {
-            log_warn "Cannot prevent sleep (%s), will be running anyway", $res;
+            log_warn "[govproc] Cannot prevent sleep (%s), will be running anyway", $res;
             last;
         }
-        log_info "Prevented sleep (%s)", $res;
+        log_info "[govproc] Prevented sleep (%s)", $res;
         $prevented_sleep++;
     }
 
@@ -533,7 +533,7 @@ sub govern_process {
         return unless $prevented_sleep;
         my $res = PowerManagement::Any::unprevent_sleep();
         unless ($res->[0] == 200 || $res->[0] == 304) {
-            log_warn "Cannot unprevent sleep (%s)", $res;
+            log_warn "[govproc] Cannot unprevent sleep (%s)", $res;
         }
         $prevented_sleep = 0;
     };
@@ -553,7 +553,7 @@ sub govern_process {
         $to = IPC::Run::timeout(1);
         #$self->{to} = $to;
         $h  = IPC::Run::start($cmd, \*STDIN, $out, $err, $to)
-            or die "Can't start program: $?";
+            or die "govproc: Can't start program: $?";
         $self->{h} = $h;
 
         if (defined $args{nice}) {
@@ -678,7 +678,7 @@ sub govern_process {
             if (!$noss_lastprevent_time) {
                 $noss_screensaver = Screensaver::Any::detect_screensaver();
                 if (!$noss_screensaver) {
-                    warn "Can't detect any known screensaver, ".
+                    warn "govproc: Can't detect any known screensaver, ".
                         "will skip preventing screensaver from activating";
                     $noss = 0;
                     last NOSS;
@@ -687,7 +687,7 @@ sub govern_process {
                     screensaver => $noss_screensaver,
                 );
                 if ($res->[0] != 200) {
-                    warn "Can't get screensaver timeout ($res->[0]: $res->[1])".
+                    warn "govproc: Can't get screensaver timeout ($res->[0]: $res->[1])".
                         ", will skip preventing screensaver from activating";
                     $noss = 0;
                     last NOSS;
@@ -698,7 +698,7 @@ sub govern_process {
                 screensaver => $noss_screensaver,
             );
             if ($res->[0] != 200) {
-                warn "Can't prevent screensaver from activating ".
+                warn "govproc: Can't prevent screensaver from activating ".
                     "($res->[0]: $res->[1])";
             }
             $noss_lastprevent_time = $now;
