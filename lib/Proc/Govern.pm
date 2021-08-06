@@ -148,7 +148,7 @@ _
         },
         load_check_every => {
             schema => [duration => {default => 10, 'x.perl.coerce_rules'=>['From_str::human']}],
-            summary => 'Frequency of load checking',
+            summary => 'Frequency of load checking (in seconds)',
             tags => ['category:load-control'],
         },
         load_high_limit => {
