@@ -1,16 +1,17 @@
 package Proc::Govern;
 
-# AUTHORITY
-# DATE
-# DIST
-# VERSION
-
 use 5.010001;
 use strict;
 use warnings;
 use Log::ger;
 
 use Exporter qw(import);
+
+# AUTHORITY
+# DATE
+# DIST
+# VERSION
+
 our @EXPORT_OK = qw(govern_process);
 
 our %SPEC;
@@ -939,6 +940,10 @@ Proc::Govern attempts (or will attempt, some day) to provide the functionality
 djb's B<supervise>, http://cr.yp.to/daemontools/supervise.html
 
 =item * Pausing under high system load
+
+L<run-stop-run> from L<App::RunStopRun> employs the same technique of
+stopping/resuming processes periodically but does not seem to monitor system
+load or CPU usage.
 
 B<loadwatch>. This program also has the ability to run N copies of program and
 interactively control stopping/resuming via Unix socket.
