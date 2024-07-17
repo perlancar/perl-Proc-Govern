@@ -15,7 +15,7 @@
 	- Add options: --log-combined-{dir,size,histories,period}.
 
 
-0.211   2020-08-18  Released-By: PERLANCAR; Urgency: medium; Backward-Compatible: no
+0.211   2020-08-18  Released-By: PERLANCAR; Urgency: medium; Backward-Incompatible: yes
 
 	- [incompatible change] Rename --restart to --restart-if-failed.
 
